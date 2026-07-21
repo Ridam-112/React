@@ -1,28 +1,33 @@
-# [Project name]
+# SwiftMart
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A pnpm monorepo with a SwiftMart Expo/React Native mobile app and an Express 5 API server backed by PostgreSQL.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — build and run the API server (port from `$PORT`)
+- `pnpm --filter @workspace/swiftmart run dev` — start the Expo dev server (mobile + web)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
+- pnpm workspaces, Node.js 20, TypeScript 5.9
+- API: Express 5 (esbuild CJS bundle, auto-rebuilt on `dev`)
+- Mobile: Expo / React Native (SwiftMart)
+- DB: PostgreSQL + Drizzle ORM (`DATABASE_URL` is runtime-managed by Replit — no manual setup needed)
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/api-server/` — Express API server
+- `artifacts/swiftmart/` — Expo mobile app
+- `lib/db/` — Drizzle ORM schema and DB client
+- `lib/api-spec/` — OpenAPI spec (source of truth for API contracts)
+- `lib/api-zod/` — generated Zod schemas from OpenAPI spec
+- `lib/api-client-react/` — generated React Query hooks from OpenAPI spec
 
 ## Architecture decisions
 
@@ -38,7 +43,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- `DATABASE_URL` and all `PG*` env vars are runtime-managed by Replit; do not set them manually.
+- The DB schema (`lib/db/src/schema/index.ts`) is currently empty — add tables there and run `pnpm --filter @workspace/db run push` to apply them.
 
 ## Pointers
 
