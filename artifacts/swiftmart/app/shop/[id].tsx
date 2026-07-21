@@ -107,18 +107,6 @@ export default function ShopDetailScreen() {
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
 
           <View style={styles.statChip}>
-            <MaterialCommunityIcons name="clock-fast" size={14} color={colors.primary} />
-            <Text style={[styles.statText, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]}>
-              {shop.deliveryTime}
-            </Text>
-            <Text style={[styles.statSub, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-              delivery
-            </Text>
-          </View>
-
-          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-
-          <View style={styles.statChip}>
             <Feather name="package" size={14} color={colors.primary} />
             <Text style={[styles.statText, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]}>
               {shopProducts.length}
