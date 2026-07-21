@@ -171,14 +171,14 @@ export default function CartScreen() {
             )}
           />
 
-          {/* Checkout Footer */}
+          {/* Checkout Footer — must clear the floating tab bar (70px) + its 16px gap */}
           <View
             style={[
               styles.footer,
               {
                 backgroundColor: colors.card,
                 borderTopColor: colors.border,
-                paddingBottom: insets.bottom + 16,
+                paddingBottom: insets.bottom + 86,
               },
             ]}
           >
