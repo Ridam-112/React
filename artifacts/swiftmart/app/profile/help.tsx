@@ -18,9 +18,9 @@ const FAQS = [
 ];
 
 const CONTACT = [
-  { icon: 'message-circle', label: 'Live Chat', sub: 'Typically replies in 2 min', color: '#3B82F6' },
-  { icon: 'phone', label: 'Call Support', sub: '1800-XXX-XXXX · 8 AM – 10 PM', color: '#4CAF50' },
-  { icon: 'mail', label: 'Email Us', sub: 'support@swiftmart.in', color: '#FFC107' },
+  { icon: 'message-circle', label: 'Live Chat', sub: 'Typically replies in 2 min', color: '#3B82F6', action: null },
+  { icon: 'phone', label: 'Call Support', sub: '1800-XXX-XXXX · 8 AM – 10 PM', color: '#4CAF50', action: 'tel:1800XXXXXXX' },
+  { icon: 'mail', label: 'Email Us', sub: 'support@swiftmart.in', color: '#FFC107', action: 'mailto:support@swiftmart.in' },
 ];
 
 export default function HelpScreen() {
@@ -107,6 +107,7 @@ export default function HelpScreen() {
               <TouchableOpacity
                 key={c.label}
                 activeOpacity={0.8}
+                onPress={() => c.action && Linking.openURL(c.action)}
                 style={[styles.contactCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}
               >
                 <View style={[styles.contactIcon, { backgroundColor: c.color + '22' }]}>

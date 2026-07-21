@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
-import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { CATEGORIES, PRODUCTS, SHOPS, OFFERS } from '@/constants/data';
 import { useCart } from '@/context/CartContext';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -43,7 +43,7 @@ function getGreeting(): string {
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { itemCount } = useCart();
+  useCart(); // cart context kept active for child components
 
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -198,7 +198,7 @@ export default function HomeScreen() {
             scrollEnabled
           />
         )}
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 }

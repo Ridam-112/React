@@ -23,7 +23,7 @@ export default function SuccessScreen() {
   useEffect(() => {
     Animated.spring(scale, {
       toValue: 1,
-      useNativeDriver: false,
+      useNativeDriver: true,
       bounciness: 14,
     }).start();
   }, []);
