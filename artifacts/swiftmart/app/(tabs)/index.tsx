@@ -209,7 +209,7 @@ export default function HomeScreen() {
         {loading ? <BannerSkeleton /> : <HeroBanner />}
 
         {/* Top Categories */}
-        <SectionHeader title="Top Categories" />
+        <SectionHeader title="Top Categories" onSeeAll={() => router.push('/(tabs)/categories')} />
         <FlatList
           data={CATEGORIES}
           horizontal
@@ -221,7 +221,7 @@ export default function HomeScreen() {
         />
 
         {/* Flash Deals */}
-        <FlashDeals loading={loading} />
+        <FlashDeals loading={loading} onSeeAll={() => router.push('/flash-deals')} />
 
         {/* Popular Near You */}
         <SectionHeader title="Popular Near You" onSeeAll={() => router.push('/products')} />
@@ -242,13 +242,13 @@ export default function HomeScreen() {
         )}
 
         {/* Best Offers */}
-        <SectionHeader title="Best Offers For You" onSeeAll={() => router.push('/products')} />
+        <SectionHeader title="Best Offers For You" onSeeAll={() => router.push('/offers')} />
         {OFFERS.map((offer) => (
           <OfferCard key={offer.id} offer={offer} />
         ))}
 
         {/* Recommended Shops */}
-        <SectionHeader title="Recommended Shops" />
+        <SectionHeader title="Recommended Shops" onSeeAll={() => router.push('/shops')} />
         {loading ? (
           <View style={styles.skeletonRow}>
             {[0, 1, 2].map((i) => <ShopCardSkeleton key={i} />)}

@@ -47,9 +47,9 @@ function TimeBlock({ value }: TimeBlockProps) {
   );
 }
 
-type Props = { loading?: boolean };
+type Props = { loading?: boolean; onSeeAll?: () => void };
 
-export function FlashDeals({ loading = false }: Props) {
+export function FlashDeals({ loading = false, onSeeAll }: Props) {
   const colors = useColors();
   const [hh, mm, ss] = useCountdown(2 * 3600 + 14 * 60 + 37);
 
@@ -116,6 +116,7 @@ export function FlashDeals({ loading = false }: Props) {
             <TimeBlock value={ss} />
           </View>
           <TouchableOpacity
+            onPress={onSeeAll}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text
