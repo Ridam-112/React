@@ -1,0 +1,80 @@
+Build a Flutter mobile app home screen for "SwiftMart", a hyperlocal quick-commerce platform in India. Use the attached UI image as inspiration, but improve the overall design and user experience.
+
+Theme & Branding:
+
+Primary colors: Dark Navy (#07111F), Yellow (#FFC107), White.
+Match the SwiftMart logo colors.
+Modern, premium, and minimal design.
+Rounded corners and subtle shadows.
+
+Home Screen Layout:
+
+Top App Bar:
+Hamburger menu on the left.
+SwiftMart logo and text.
+Notification icon with unread badge.
+Cart icon.
+Show "Delivering to Balurghat" below the app bar.
+Search Bar:
+Full-width rounded search bar.
+Placeholder: "Search groceries, medicines, food..."
+Add a search icon.
+Hero Banner:
+Auto-sliding carousel (3 banners).
+Promotional offers like:
+"10-Min Delivery"
+"Flat 20% OFF"
+"Free Delivery on First Order"
+Add page indicators.
+Top Categories:
+Grocery
+Medicines
+Food
+Dairy
+Fruits & Vegetables
+Stationery
+Electronics
+Fashion
+Use colorful 3D-style icons.
+Display number of shops below each category.
+Popular Near You:
+Horizontal scrollable product cards.
+Each card should include:
+Product image
+Name
+Weight/Quantity
+Original price (strikethrough)
+Discounted price
+Add-to-cart button
+Discount badge
+Best Offers Section:
+Large promotional cards.
+Examples:
+"20% OFF"
+"Buy 1 Get 1"
+"Free Delivery"
+Recommended Shops:
+Horizontal list of nearby stores.
+Show store image, rating, delivery time, and category.
+Bottom Navigation Bar:
+Home
+Categories
+Cart
+Orders
+Profile
+Highlight the active tab with SwiftMart Yellow.
+
+UI Improvements Required:
+
+Increase spacing between sections for better readability.
+Use smooth animations and transitions.
+Add skeleton loaders for API loading states.
+Ensure the UI is responsive for all Android devices.
+Use Material 3 design principles.
+Add shimmer effects while loading products.
+Use Riverpod for state management.
+Use GoRouter for navigation.
+Follow clean architecture and reusable widgets.
+Optimize for performance (60 FPS).
+
+The final design should feel like a premium mix of Blinkit, Zepto, and Instamart while maintaining SwiftMart's unique dark-and-yellow brand identity. The home screen should look production-ready and suitable for publishing on the Play Store.

@@ -1,0 +1,23 @@
+kind = "mobile"
+previewPath = "/"
+title = "SwiftMart"
+version = "1.0.0"
+id = "artifacts/swiftmart"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/" ]
+localPort = 25949
+
+[services.development]
+run = "pnpm --filter @workspace/swiftmart run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/swiftmart", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/swiftmart", "run", "serve" ]
+
+[services.env]
+PORT = "25949"
+BASE_PATH = "/"

@@ -1,0 +1,213 @@
+import React from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { useColors } from '@/hooks/useColors';
+import { useCart } from '@/context/CartContext';
+import { Product } from '@/constants/data';
+
+type Props = { product: Product };
+
+export function ProductCard({ product }: Props) {
+  const colors = useColors();
+  const { items, addToCart, updateQuantity } = useCart();
+  const cartItem = items.find((i) => i.product.id === product.id);
+  const qty = cartItem?.quantity ?? 0;
+
+  const handleAdd = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    addToCart(product);
+  };
+
+  const handleDecrement = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    updateQuantity(product.id, qty - 1);
+  };
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderRadius: colors.radius,
+        },
+      ]}
+    >
+      {/* Discount Badge */}
+      <View
+        style={[styles.discountBadge, { backgroundColor: colors.primary }]}
+      >
+        <Text
+          style={[
+            styles.discountText,
+            {
+              color: colors.primaryForeground,
+              fontFamily: 'Inter_700Bold',
+            },
+          ]}
+        >
+          {product.discount}% OFF
+        </Text>
+      </View>
+
+      {/* Product Image */}
+      <Image
+        source={product.image}
+        style={styles.image}
+        resizeMode="contain"
+      />
+
+      {/* Info */}
+      <View style={styles.info}>
+        <Text
+          style={[
+            styles.name,
+            { color: colors.foreground, fontFamily: 'Inter_600SemiBold' },
+          ]}
+          numberOfLines={2}
+        >
+          {product.name}
+        </Text>
+        <Text
+          style={[
+            styles.weight,
+            { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' },
+          ]}
+        >
+          {product.weight}
+        </Text>
+        <View style={styles.priceRow}>
+          <Text
+            style={[
+              styles.price,
+              { color: colors.primary, fontFamily: 'Inter_700Bold' },
+            ]}
+          >
+            ₹{product.discountedPrice}
+          </Text>
+          <Text
+            style={[
+              styles.originalPrice,
+              {
+                color: colors.mutedForeground,
+                fontFamily: 'Inter_400Regular',
+              },
+            ]}
+          >
+            ₹{product.originalPrice}
+          </Text>
+        </View>
+
+        {/* Add / Quantity */}
+        {qty === 0 ? (
+          <TouchableOpacity
+            style={[
+              styles.addBtn,
+              {
+                backgroundColor: colors.primary,
+                borderRadius: colors.radius - 4,
+              },
+            ]}
+            onPress={handleAdd}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.addBtnText,
+                {
+                  color: colors.primaryForeground,
+                  fontFamily: 'Inter_600SemiBold',
+                },
+              ]}
+            >
+              Add
+            </Text>
+            <Feather name="plus" size={14} color={colors.primaryForeground} />
+          </TouchableOpacity>
+        ) : (
+          <View
+            style={[
+              styles.qtyRow,
+              {
+                backgroundColor: colors.secondary,
+                borderRadius: colors.radius - 4,
+              },
+            ]}
+          >
+            <TouchableOpacity style={styles.qtyBtn} onPress={handleDecrement}>
+              <Feather name="minus" size={14} color={colors.primary} />
+            </TouchableOpacity>
+            <Text
+              style={[
+                styles.qty,
+                { color: colors.foreground, fontFamily: 'Inter_700Bold' },
+              ]}
+            >
+              {qty}
+            </Text>
+            <TouchableOpacity style={styles.qtyBtn} onPress={handleAdd}>
+              <Feather name="plus" size={14} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    width: 152,
+    borderWidth: 1,
+    overflow: 'hidden',
+    paddingBottom: 12,
+  },
+  discountBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    zIndex: 1,
+  },
+  discountText: { fontSize: 10 },
+  image: { width: '100%', height: 110, marginTop: 8 },
+  info: { paddingHorizontal: 10, gap: 4 },
+  name: { fontSize: 13 },
+  weight: { fontSize: 11 },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  price: { fontSize: 15 },
+  originalPrice: {
+    fontSize: 12,
+    textDecorationLine: 'line-through',
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 7,
+    marginTop: 4,
+    gap: 4,
+  },
+  addBtnText: { fontSize: 13 },
+  qtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  qtyBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qty: { fontSize: 15 },
+});
