@@ -15,12 +15,12 @@ import { NOTIFICATIONS } from '@/constants/data';
 type MenuItem = { icon: string; label: string; route?: string };
 
 const MENU: MenuItem[] = [
-  { icon: 'map-pin',     label: 'Saved Addresses' },
-  { icon: 'credit-card', label: 'Payment Methods' },
-  { icon: 'file-text',   label: 'Order History' },
-  { icon: 'bell',        label: 'Notifications',   route: '/notifications' },
-  { icon: 'help-circle', label: 'Help & Support' },
-  { icon: 'settings',    label: 'Settings' },
+  { icon: 'map-pin',     label: 'Saved Addresses',  route: '/profile/addresses' },
+  { icon: 'credit-card', label: 'Payment Methods',  route: '/profile/payment-methods' },
+  { icon: 'file-text',   label: 'Order History',    route: '/profile/order-history' },
+  { icon: 'bell',        label: 'Notifications',    route: '/notifications' },
+  { icon: 'help-circle', label: 'Help & Support',   route: '/profile/help' },
+  { icon: 'settings',    label: 'Settings',         route: '/profile/settings' },
 ];
 
 export default function ProfileScreen() {
@@ -101,7 +101,7 @@ export default function ProfileScreen() {
             +91 98765 43210
           </Text>
         </View>
-        <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => router.push('/profile/edit')}>
           <Feather name="edit-2" size={18} color={colors.primary} />
         </TouchableOpacity>
       </View>

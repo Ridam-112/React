@@ -31,10 +31,16 @@ function RootLayoutNav() {
       <Stack.Screen name="offers"         options={{ headerShown: false }} />
       <Stack.Screen name="shops"          options={{ headerShown: false }} />
       <Stack.Screen name="order/[id]"         options={{ headerShown: false }} />
-      <Stack.Screen name="checkout/address"   options={{ headerShown: false }} />
-      <Stack.Screen name="checkout/payment"   options={{ headerShown: false }} />
-      <Stack.Screen name="checkout/confirm"   options={{ headerShown: false }} />
-      <Stack.Screen name="checkout/success"   options={{ headerShown: false }} />
+      <Stack.Screen name="checkout/address"          options={{ headerShown: false }} />
+      <Stack.Screen name="checkout/payment"          options={{ headerShown: false }} />
+      <Stack.Screen name="checkout/confirm"          options={{ headerShown: false }} />
+      <Stack.Screen name="checkout/success"          options={{ headerShown: false }} />
+      <Stack.Screen name="profile/edit"              options={{ headerShown: false }} />
+      <Stack.Screen name="profile/addresses"         options={{ headerShown: false }} />
+      <Stack.Screen name="profile/payment-methods"   options={{ headerShown: false }} />
+      <Stack.Screen name="profile/order-history"     options={{ headerShown: false }} />
+      <Stack.Screen name="profile/help"              options={{ headerShown: false }} />
+      <Stack.Screen name="profile/settings"          options={{ headerShown: false }} />
     </Stack>
   );
 }
