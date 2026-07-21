@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useCart } from '@/context/CartContext';
+import { router } from 'expo-router';
 
 export default function CartScreen() {
   const colors = useColors();
@@ -212,9 +213,10 @@ export default function CartScreen() {
                 },
               ]}
               activeOpacity={0.85}
-              onPress={() =>
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-              }
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push('/checkout/address');
+              }}
             >
               <Text
                 style={[

@@ -30,7 +30,11 @@ function RootLayoutNav() {
       <Stack.Screen name="flash-deals"    options={{ headerShown: false }} />
       <Stack.Screen name="offers"         options={{ headerShown: false }} />
       <Stack.Screen name="shops"          options={{ headerShown: false }} />
-      <Stack.Screen name="order/[id]"    options={{ headerShown: false }} />
+      <Stack.Screen name="order/[id]"         options={{ headerShown: false }} />
+      <Stack.Screen name="checkout/address"   options={{ headerShown: false }} />
+      <Stack.Screen name="checkout/payment"   options={{ headerShown: false }} />
+      <Stack.Screen name="checkout/confirm"   options={{ headerShown: false }} />
+      <Stack.Screen name="checkout/success"   options={{ headerShown: false }} />
     </Stack>
   );
 }
