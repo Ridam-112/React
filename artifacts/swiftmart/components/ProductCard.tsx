@@ -14,9 +14,9 @@ import { useColors } from '@/hooks/useColors';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/constants/data';
 
-type Props = { product: Product };
+type Props = { product: Product; cardWidth?: number };
 
-export function ProductCard({ product }: Props) {
+export function ProductCard({ product, cardWidth }: Props) {
   const colors = useColors();
   const { items, addToCart, updateQuantity } = useCart();
   const cartItem = items.find((i) => i.product.id === product.id);
@@ -67,6 +67,7 @@ export function ProductCard({ product }: Props) {
           backgroundColor: colors.card,
           borderColor: colors.border,
           borderRadius: colors.radius,
+          ...(cardWidth !== undefined ? { width: cardWidth } : {}),
         },
       ]}
     >

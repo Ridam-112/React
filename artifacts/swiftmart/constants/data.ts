@@ -16,6 +16,7 @@ export type Product = {
   discountedPrice: number;
   discount: number;
   image: ImageSourcePropType;
+  category?: string;
 };
 
 export type Shop = {
@@ -56,6 +57,7 @@ export const PRODUCTS: Product[] = [
     discountedPrice: 89,
     discount: 26,
     image: require('@/assets/images/product1.png'),
+    category: 'Fruits & Veg',
   },
   {
     id: '2',
@@ -65,6 +67,7 @@ export const PRODUCTS: Product[] = [
     discountedPrice: 52,
     discount: 20,
     image: require('@/assets/images/product2.png'),
+    category: 'Dairy',
   },
   {
     id: '3',
@@ -74,6 +77,7 @@ export const PRODUCTS: Product[] = [
     discountedPrice: 28,
     discount: 20,
     image: require('@/assets/images/product3.png'),
+    category: 'Medicines',
   },
   {
     id: '4',
@@ -83,6 +87,7 @@ export const PRODUCTS: Product[] = [
     discountedPrice: 42,
     discount: 24,
     image: require('@/assets/images/product4.png'),
+    category: 'Grocery',
   },
   {
     id: '5',
@@ -92,6 +97,7 @@ export const PRODUCTS: Product[] = [
     discountedPrice: 176,
     discount: 20,
     image: require('@/assets/images/product5.png'),
+    category: 'Food',
   },
   {
     id: '6',
@@ -101,6 +107,7 @@ export const PRODUCTS: Product[] = [
     discountedPrice: 68,
     discount: 19,
     image: require('@/assets/images/product1.png'),
+    category: 'Dairy',
   },
   {
     id: '7',
@@ -110,6 +117,7 @@ export const PRODUCTS: Product[] = [
     discountedPrice: 109,
     discount: 22,
     image: require('@/assets/images/product2.png'),
+    category: 'Grocery',
   },
   {
     id: '8',
@@ -119,6 +127,7 @@ export const PRODUCTS: Product[] = [
     discountedPrice: 219,
     discount: 22,
     image: require('@/assets/images/product4.png'),
+    category: 'Grocery',
   },
 ];
 
@@ -132,6 +141,7 @@ export const FLASH_DEALS: Product[] = [
     discountedPrice: 299,
     discount: 34,
     image: require('@/assets/images/product1.png'),
+    category: 'Grocery',
   },
   {
     id: 'f2',
@@ -141,6 +151,7 @@ export const FLASH_DEALS: Product[] = [
     discountedPrice: 168,
     discount: 40,
     image: require('@/assets/images/product2.png'),
+    category: 'Dairy',
   },
   {
     id: 'f3',
@@ -150,6 +161,7 @@ export const FLASH_DEALS: Product[] = [
     discountedPrice: 72,
     discount: 40,
     image: require('@/assets/images/product3.png'),
+    category: 'Grocery',
   },
   {
     id: 'f4',
@@ -159,6 +171,7 @@ export const FLASH_DEALS: Product[] = [
     discountedPrice: 127,
     discount: 35,
     image: require('@/assets/images/product4.png'),
+    category: 'Grocery',
   },
   {
     id: 'f5',
@@ -168,6 +181,7 @@ export const FLASH_DEALS: Product[] = [
     discountedPrice: 39,
     discount: 35,
     image: require('@/assets/images/product5.png'),
+    category: 'Food',
   },
 ];
 

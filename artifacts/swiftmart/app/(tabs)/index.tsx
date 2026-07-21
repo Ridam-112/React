@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { CATEGORIES, PRODUCTS, SHOPS, OFFERS } from '@/constants/data';
@@ -281,7 +282,7 @@ export default function HomeScreen() {
         <FlashDeals loading={loading} />
 
         {/* Popular Near You */}
-        <SectionHeader title="Popular Near You" />
+        <SectionHeader title="Popular Near You" onSeeAll={() => router.push('/products')} />
         {loading ? (
           <View style={styles.skeletonRow}>
             {[0, 1, 2].map((i) => (
@@ -301,7 +302,7 @@ export default function HomeScreen() {
         )}
 
         {/* Best Offers */}
-        <SectionHeader title="Best Offers For You" />
+        <SectionHeader title="Best Offers For You" onSeeAll={() => router.push('/products')} />
         {OFFERS.map((offer) => (
           <OfferCard key={offer.id} offer={offer} />
         ))}
