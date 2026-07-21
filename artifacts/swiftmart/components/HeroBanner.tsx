@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Image,
@@ -6,6 +6,7 @@ import {
   Dimensions,
   FlatList,
   Animated,
+  ViewToken,
 } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 
@@ -20,18 +21,23 @@ const BANNERS = [
   { id: '3', image: require('@/assets/images/banner3.png') },
 ];
 
+// Stable outside component — viewabilityConfig must never change reference
+const VIEWABILITY_CONFIG = { viewAreaCoveragePercentThreshold: 50 };
+
 export function HeroBanner() {
   const colors = useColors();
   const flatListRef = useRef<FlatList>(null);
   const currentIndexRef = useRef(0);
   const [, setDisplayIndex] = useState(0);
 
-  // One Animated.Value per dot, driven by displayIndex
+  // One Animated.Value per dot
   const dotAnims = useRef(
     BANNERS.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))
   ).current;
 
-  const animateDots = useCallback((idx: number) => {
+  // Keep animateDots in a ref so the stable onViewableItemsChanged callback
+  // can always call the latest version without being recreated itself.
+  const animateDotsRef = useRef((idx: number) => {
     dotAnims.forEach((anim, i) => {
       Animated.spring(anim, {
         toValue: i === idx ? 1 : 0,
@@ -40,7 +46,20 @@ export function HeroBanner() {
         bounciness: 0,
       }).start();
     });
-  }, [dotAnims]);
+  });
+
+  // Stable reference — created once, never replaced.
+  // FlatList throws if onViewableItemsChanged changes after mount.
+  const onViewableItemsChangedRef = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const idx = viewableItems[0]?.index;
+      if (idx != null && idx !== currentIndexRef.current) {
+        currentIndexRef.current = idx;
+        setDisplayIndex(idx);
+        animateDotsRef.current(idx);
+      }
+    }
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -48,10 +67,10 @@ export function HeroBanner() {
       currentIndexRef.current = next;
       flatListRef.current?.scrollToIndex({ index: next, animated: true });
       setDisplayIndex(next);
-      animateDots(next);
+      animateDotsRef.current(next);
     }, 3000);
     return () => clearInterval(timer);
-  }, [animateDots]);
+  }, []);
 
   return (
     <View style={styles.wrapper}>
@@ -70,15 +89,8 @@ export function HeroBanner() {
           offset: ITEM_SIZE * index,
           index,
         })}
-        onViewableItemsChanged={({ viewableItems }) => {
-          const idx = viewableItems[0]?.index;
-          if (idx != null && idx !== currentIndexRef.current) {
-            currentIndexRef.current = idx;
-            setDisplayIndex(idx);
-            animateDots(idx);
-          }
-        }}
-        viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
+        onViewableItemsChanged={onViewableItemsChangedRef.current}
+        viewabilityConfig={VIEWABILITY_CONFIG}
         renderItem={({ item }) => (
           <Image
             source={item.image}
