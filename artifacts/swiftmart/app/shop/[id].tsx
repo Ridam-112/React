@@ -129,11 +129,19 @@ export default function ShopDetailScreen() {
           </View>
         </View>
 
-        {/* Description */}
-        {shop.description && (
-          <Text style={[styles.description, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-            {shop.description}
-          </Text>
+        {/* FSSAI verified badge */}
+        {shop.category !== 'Pharmacy' && (
+          <View style={styles.fssaiRow}>
+            <View style={[styles.fssaiBadge, { backgroundColor: '#0a7c3e' }]}>
+              <MaterialCommunityIcons name="check-decagram" size={13} color="#fff" />
+              <Text style={[styles.fssaiText, { fontFamily: 'Inter_600SemiBold' }]}>
+                FSSAI Verified
+              </Text>
+            </View>
+            <Text style={[styles.fssaiSub, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+              Lic. No. 10019022000149
+            </Text>
+          </View>
         )}
       </View>
 
@@ -280,7 +288,10 @@ const styles = StyleSheet.create({
   statText: { fontSize: 15 },
   statSub: { fontSize: 11 },
   statDivider: { width: 1, height: 28, marginHorizontal: 4 },
-  description: { fontSize: 13, lineHeight: 20 },
+  fssaiRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
+  fssaiBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
+  fssaiText: { fontSize: 11, color: '#fff' },
+  fssaiSub: { fontSize: 11 },
 
   /* Products section */
   sectionHeading: {
