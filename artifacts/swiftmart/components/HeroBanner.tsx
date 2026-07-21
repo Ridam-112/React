@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Image,
@@ -24,14 +24,14 @@ export function HeroBanner() {
   const colors = useColors();
   const flatListRef = useRef<FlatList>(null);
   const currentIndexRef = useRef(0);
-  const [displayIndex, setDisplayIndex] = useState(0);
+  const [, setDisplayIndex] = useState(0);
 
   // One Animated.Value per dot, driven by displayIndex
   const dotAnims = useRef(
     BANNERS.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))
   ).current;
 
-  const animateDots = (idx: number) => {
+  const animateDots = useCallback((idx: number) => {
     dotAnims.forEach((anim, i) => {
       Animated.spring(anim, {
         toValue: i === idx ? 1 : 0,
@@ -40,7 +40,7 @@ export function HeroBanner() {
         bounciness: 0,
       }).start();
     });
-  };
+  }, [dotAnims]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -51,7 +51,7 @@ export function HeroBanner() {
       animateDots(next);
     }, 3000);
     return () => clearInterval(timer);
-  }, []);
+  }, [animateDots]);
 
   return (
     <View style={styles.wrapper}>

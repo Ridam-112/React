@@ -1,11 +1,12 @@
 import React, { useRef } from 'react';
 import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
   Animated,
+  Image,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -24,17 +25,18 @@ export function ProductCard({ product }: Props) {
   // Scale spring for the Add button press
   const btnScale = useRef(new Animated.Value(1)).current;
 
+  const nativeDriver = Platform.OS !== 'web';
   const punchBtn = () => {
     Animated.sequence([
       Animated.spring(btnScale, {
         toValue: 0.86,
-        useNativeDriver: true,
+        useNativeDriver: nativeDriver,
         speed: 60,
         bounciness: 0,
       }),
       Animated.spring(btnScale, {
         toValue: 1,
-        useNativeDriver: true,
+        useNativeDriver: nativeDriver,
         speed: 18,
         bounciness: 14,
       }),

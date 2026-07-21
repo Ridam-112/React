@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
@@ -37,12 +37,17 @@ function SwiftMartTabs() {
           borderColor: colors.border,
           paddingBottom: 6,
           paddingTop: 8,
-          // Shadows
-          elevation: 24,
-          shadowColor: '#000000',
-          shadowOpacity: 0.55,
-          shadowRadius: 20,
-          shadowOffset: { width: 0, height: 8 },
+          // Platform-specific shadows
+          ...Platform.select({
+            web: { boxShadow: '0px 8px 20px rgba(0,0,0,0.55)' },
+            default: {
+              elevation: 24,
+              shadowColor: '#000000',
+              shadowOpacity: 0.55,
+              shadowRadius: 20,
+              shadowOffset: { width: 0, height: 8 },
+            },
+          }),
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -84,7 +89,10 @@ function SwiftMartTabs() {
                   styles.cartBtn,
                   {
                     backgroundColor: colors.primary,
-                    shadowColor: colors.primary,
+                    ...Platform.select({
+                      web: { boxShadow: `0px 6px 16px ${colors.primary}99` },
+                      default: { shadowColor: colors.primary },
+                    }),
                   },
                 ]}
               >
@@ -143,10 +151,15 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 12,
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    ...Platform.select({
+      web: {},
+      default: {
+        elevation: 12,
+        shadowOpacity: 0.5,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 6 },
+      },
+    }),
   },
   cartBadge: {
     position: 'absolute',

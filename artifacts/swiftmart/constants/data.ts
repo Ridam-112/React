@@ -6,6 +6,8 @@ export type Category = {
   shops: number;
 };
 
+import { ImageSourcePropType } from 'react-native';
+
 export type Product = {
   id: string;
   name: string;
@@ -13,7 +15,7 @@ export type Product = {
   originalPrice: number;
   discountedPrice: number;
   discount: number;
-  image: ReturnType<typeof require>;
+  image: ImageSourcePropType;
 };
 
 export type Shop = {
@@ -22,7 +24,7 @@ export type Shop = {
   category: string;
   rating: number;
   deliveryTime: string;
-  image: ReturnType<typeof require>;
+  image: ImageSourcePropType;
 };
 
 export type Offer = {
@@ -31,7 +33,7 @@ export type Offer = {
   subtitle: string;
   code?: string;
   accentColor: string;
-  image: ReturnType<typeof require>;
+  image: ImageSourcePropType;
 };
 
 export const CATEGORIES: Category[] = [

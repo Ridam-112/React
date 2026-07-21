@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, View, StyleSheet } from 'react-native';
+import { Animated, Platform, View, StyleSheet } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 
 /* ─── Base shimmer box ────────────────────────────────────────────── */
@@ -20,12 +20,12 @@ export function SkeletonBox({ width, height, borderRadius = 8, style }: BoxProps
         Animated.timing(pulse, {
           toValue: 0.9,
           duration: 750,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(pulse, {
           toValue: 0.35,
           duration: 750,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ])
     ).start();

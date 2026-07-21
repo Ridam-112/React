@@ -1,15 +1,16 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  StatusBar,
-  TextInput,
-  RefreshControl,
   Animated,
+  FlatList,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
@@ -57,15 +58,16 @@ export default function HomeScreen() {
     const t = setTimeout(() => setLoading(false), 1600);
 
     // Header entrance animation
+    const nativeDriver = Platform.OS !== 'web';
     Animated.parallel([
       Animated.timing(headerOpacity, {
         toValue: 1,
         duration: 420,
-        useNativeDriver: true,
+        useNativeDriver: nativeDriver,
       }),
       Animated.spring(headerTranslate, {
         toValue: 0,
-        useNativeDriver: true,
+        useNativeDriver: nativeDriver,
         speed: 14,
         bounciness: 6,
       }),
