@@ -131,16 +131,6 @@ export default function HomeScreen() {
                 <Text style={styles.badgeText}>3</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="shopping-cart" size={22} color={colors.foreground} />
-              {itemCount > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-                  <Text style={[styles.badgeText, { color: colors.primaryForeground }]}>
-                    {itemCount > 9 ? '9+' : itemCount}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
           </View>
         </View>
       </View>
