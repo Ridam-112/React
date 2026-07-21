@@ -14,6 +14,7 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { CartProvider } from '@/context/CartContext';
+import { AuthProvider } from '@/context/AuthContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,6 +43,8 @@ function RootLayoutNav() {
       <Stack.Screen name="profile/help"              options={{ headerShown: false }} />
       <Stack.Screen name="profile/settings"          options={{ headerShown: false }} />
       <Stack.Screen name="category/[id]"             options={{ headerShown: false }} />
+      <Stack.Screen name="auth/index"               options={{ headerShown: false }} />
+      <Stack.Screen name="auth/email"               options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -66,13 +69,15 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <CartProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <KeyboardProvider>
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </CartProvider>
+          <AuthProvider>
+            <CartProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <KeyboardProvider>
+                  <RootLayoutNav />
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </CartProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
