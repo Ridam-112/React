@@ -8,22 +8,25 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
+import { NOTIFICATIONS } from '@/constants/data';
 
-type MenuItem = { icon: string; label: string };
+type MenuItem = { icon: string; label: string; route?: string };
 
 const MENU: MenuItem[] = [
-  { icon: 'map-pin', label: 'Saved Addresses' },
+  { icon: 'map-pin',     label: 'Saved Addresses' },
   { icon: 'credit-card', label: 'Payment Methods' },
-  { icon: 'file-text', label: 'Order History' },
-  { icon: 'bell', label: 'Notifications' },
+  { icon: 'file-text',   label: 'Order History' },
+  { icon: 'bell',        label: 'Notifications',   route: '/notifications' },
   { icon: 'help-circle', label: 'Help & Support' },
-  { icon: 'settings', label: 'Settings' },
+  { icon: 'settings',    label: 'Settings' },
 ];
 
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const unreadCount = NOTIFICATIONS.filter((n) => !n.read).length;
 
   return (
     <ScrollView
@@ -114,41 +117,52 @@ export default function ProfileScreen() {
           },
         ]}
       >
-        {MENU.map((item, idx) => (
-          <TouchableOpacity
-            key={item.label}
-            style={[
-              styles.menuItem,
-              idx < MENU.length - 1 && {
-                borderBottomWidth: 1,
-                borderBottomColor: colors.border,
-              },
-            ]}
-            activeOpacity={0.7}
-          >
-            <View
+        {MENU.map((item, idx) => {
+          const isNotif = item.label === 'Notifications';
+          return (
+            <TouchableOpacity
+              key={item.label}
               style={[
-                styles.menuIcon,
-                { backgroundColor: colors.primary + '20' },
+                styles.menuItem,
+                idx < MENU.length - 1 && {
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                },
               ]}
+              activeOpacity={0.7}
+              onPress={item.route ? () => router.push(item.route as any) : undefined}
             >
-              <Feather name={item.icon as any} size={18} color={colors.primary} />
-            </View>
-            <Text
-              style={[
-                styles.menuLabel,
-                { color: colors.foreground, fontFamily: 'Inter_500Medium' },
-              ]}
-            >
-              {item.label}
-            </Text>
-            <Feather
-              name="chevron-right"
-              size={18}
-              color={colors.mutedForeground}
-            />
-          </TouchableOpacity>
-        ))}
+              <View
+                style={[
+                  styles.menuIcon,
+                  { backgroundColor: colors.primary + '20' },
+                ]}
+              >
+                <Feather name={item.icon as any} size={18} color={colors.primary} />
+              </View>
+              <Text
+                style={[
+                  styles.menuLabel,
+                  { color: colors.foreground, fontFamily: 'Inter_500Medium' },
+                ]}
+              >
+                {item.label}
+              </Text>
+              {isNotif && unreadCount > 0 && (
+                <View style={[styles.unreadBadge, { backgroundColor: '#EF4444' }]}>
+                  <Text style={[styles.unreadText, { fontFamily: 'Inter_700Bold' }]}>
+                    {unreadCount}
+                  </Text>
+                </View>
+              )}
+              <Feather
+                name="chevron-right"
+                size={18}
+                color={colors.mutedForeground}
+              />
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Sign Out */}
@@ -224,6 +238,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   menuLabel: { flex: 1, fontSize: 15 },
+  unreadBadge: {
+    paddingHorizontal: 7, paddingVertical: 2,
+    borderRadius: 20, minWidth: 22, alignItems: 'center', marginRight: 4,
+  },
+  unreadText: { fontSize: 11, color: '#fff' },
   signOutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
