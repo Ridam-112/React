@@ -4,7 +4,6 @@ import {
   FlatList,
   Platform,
   RefreshControl,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -50,30 +49,25 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Header fade-in on mount
-  const headerOpacity = useRef(new Animated.Value(0)).current;
-  const headerTranslate = useRef(new Animated.Value(-8)).current;
+  // Scroll position drives the header overlay
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const nativeDriver = Platform.OS !== 'web';
+
+  // Header background fades from transparent → solid between 0–80 px of scroll
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  // Subtle bottom border appears once header is solid
+  const headerBorderOpacity = scrollY.interpolate({
+    inputRange: [60, 90],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
-    // Simulate data fetch — 1.6 s skeleton then reveal
     const t = setTimeout(() => setLoading(false), 1600);
-
-    // Header entrance animation
-    const nativeDriver = Platform.OS !== 'web';
-    Animated.parallel([
-      Animated.timing(headerOpacity, {
-        toValue: 1,
-        duration: 420,
-        useNativeDriver: nativeDriver,
-      }),
-      Animated.spring(headerTranslate, {
-        toValue: 0,
-        useNativeDriver: nativeDriver,
-        speed: 14,
-        bounciness: 6,
-      }),
-    ]).start();
-
     return () => clearTimeout(t);
   }, []);
 
@@ -86,22 +80,33 @@ export default function HomeScreen() {
     }, 1500);
   }, []);
 
-  // Extra bottom padding for the floating tab bar (64 height + 16 bottom + 16 buffer)
+  // Height of the fixed app bar (used to push content down)
+  const APP_BAR_H = insets.top + 58;
   const scrollPaddingBottom = 96 + (insets.bottom > 0 ? insets.bottom : 0);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* ── Animated App Bar ──────────────────────────────────────── */}
-      <Animated.View
-        style={{
-          opacity: headerOpacity,
-          transform: [{ translateY: headerTranslate }],
-        }}
-      >
-        {/* App Bar */}
-        <View style={[styles.appBar, { paddingTop: insets.top + 10 }]}>
+      {/* ── Fixed overlay header ───────────────────────────────────── */}
+      <View style={[styles.fixedHeader, { paddingTop: insets.top }]} pointerEvents="box-none">
+        {/* Animated background layer */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: colors.background, opacity: headerBgOpacity },
+          ]}
+        />
+        {/* Animated bottom border */}
+        <Animated.View
+          style={[
+            styles.headerBorder,
+            { backgroundColor: colors.border, opacity: headerBorderOpacity },
+          ]}
+        />
+
+        {/* App bar content */}
+        <View style={styles.appBar} pointerEvents="box-none">
           <TouchableOpacity
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             activeOpacity={0.7}
@@ -109,55 +114,28 @@ export default function HomeScreen() {
             <Feather name="menu" size={24} color={colors.foreground} />
           </TouchableOpacity>
 
-          {/* Logo */}
           <View style={styles.logoRow}>
-            <MaterialCommunityIcons
-              name="lightning-bolt"
-              size={20}
-              color={colors.primary}
-            />
-            <Text
-              style={[
-                styles.logoSwift,
-                { color: colors.primary, fontFamily: 'Inter_700Bold' },
-              ]}
-            >
+            <MaterialCommunityIcons name="lightning-bolt" size={20} color={colors.primary} />
+            <Text style={[styles.logoSwift, { color: colors.primary, fontFamily: 'Inter_700Bold' }]}>
               Swift
             </Text>
-            <Text
-              style={[
-                styles.logoMart,
-                { color: colors.foreground, fontFamily: 'Inter_700Bold' },
-              ]}
-            >
+            <Text style={[styles.logoMart, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
               Mart
             </Text>
           </View>
 
-          {/* Actions */}
           <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
+            <TouchableOpacity style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Feather name="bell" size={22} color={colors.foreground} />
               <View style={[styles.badge, { backgroundColor: '#EF4444' }]}>
                 <Text style={styles.badgeText}>3</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
+            <TouchableOpacity style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Feather name="shopping-cart" size={22} color={colors.foreground} />
               {itemCount > 0 && (
                 <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-                  <Text
-                    style={[
-                      styles.badgeText,
-                      { color: colors.primaryForeground },
-                    ]}
-                  >
+                  <Text style={[styles.badgeText, { color: colors.primaryForeground }]}>
                     {itemCount > 9 ? '9+' : itemCount}
                   </Text>
                 </View>
@@ -165,78 +143,56 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </View>
 
-        {/* Greeting */}
+      {/* ── Scrollable Content ────────────────────────────────────── */}
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: nativeDriver }
+        )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressViewOffset={APP_BAR_H}
+          />
+        }
+        contentContainerStyle={{ paddingBottom: scrollPaddingBottom, paddingTop: APP_BAR_H }}
+      >
+        {/* Greeting — scrolls away */}
         <View style={styles.greetingRow}>
-          <Text
-            style={[
-              styles.greeting,
-              { color: colors.foreground, fontFamily: 'Inter_600SemiBold' },
-            ]}
-          >
+          <Text style={[styles.greeting, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]}>
             {getGreeting()}, Ridam 👋
           </Text>
-          <Text
-            style={[
-              styles.greetingSub,
-              { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' },
-            ]}
-          >
+          <Text style={[styles.greetingSub, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
             What do you need today?
           </Text>
         </View>
 
-        {/* Delivery Location */}
+        {/* Delivery Location — scrolls away */}
         <TouchableOpacity style={styles.deliveryRow} activeOpacity={0.7}>
-          <View
-            style={[
-              styles.locationPill,
-              { backgroundColor: colors.primary + '18', borderColor: colors.primary + '40' },
-            ]}
-          >
+          <View style={[styles.locationPill, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '40' }]}>
             <Ionicons name="location-sharp" size={13} color={colors.primary} />
-            <Text
-              style={[
-                styles.deliveringTo,
-                { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' },
-              ]}
-            >
+            <Text style={[styles.deliveringTo, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
               Delivering to{' '}
             </Text>
-            <Text
-              style={[
-                styles.locationText,
-                { color: colors.foreground, fontFamily: 'Inter_700Bold' },
-              ]}
-            >
+            <Text style={[styles.locationText, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
               Balurghat
             </Text>
-            <Feather
-              name="chevron-down"
-              size={13}
-              color={colors.primary}
-              style={{ marginLeft: 2 }}
-            />
+            <Feather name="chevron-down" size={13} color={colors.primary} style={{ marginLeft: 2 }} />
           </View>
         </TouchableOpacity>
 
-        {/* Search Bar */}
-        <View
-          style={[
-            styles.searchBar,
-            {
-              backgroundColor: colors.muted,
-              borderRadius: colors.radius,
-              borderColor: colors.border,
-            },
-          ]}
-        >
+        {/* Search Bar — scrolls away */}
+        <View style={[styles.searchBar, { backgroundColor: colors.muted, borderRadius: colors.radius, borderColor: colors.border }]}>
           <Feather name="search" size={18} color={colors.mutedForeground} />
           <TextInput
-            style={[
-              styles.searchInput,
-              { color: colors.foreground, fontFamily: 'Inter_400Regular' },
-            ]}
+            style={[styles.searchInput, { color: colors.foreground, fontFamily: 'Inter_400Regular' }]}
             placeholder="Search groceries, medicines, food..."
             placeholderTextColor={colors.mutedForeground}
             value={searchText}
@@ -248,21 +204,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </Animated.View>
 
-      {/* ── Scrollable Content ────────────────────────────────────── */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-        contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
-      >
         {/* Hero Carousel */}
         {loading ? <BannerSkeleton /> : <HeroBanner />}
 
@@ -278,16 +220,14 @@ export default function HomeScreen() {
           scrollEnabled
         />
 
-        {/* Flash Deals (countdown + heavy discounts) */}
+        {/* Flash Deals */}
         <FlashDeals loading={loading} />
 
         {/* Popular Near You */}
         <SectionHeader title="Popular Near You" onSeeAll={() => router.push('/products')} />
         {loading ? (
           <View style={styles.skeletonRow}>
-            {[0, 1, 2].map((i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
+            {[0, 1, 2].map((i) => <ProductCardSkeleton key={i} />)}
           </View>
         ) : (
           <FlatList
@@ -311,9 +251,7 @@ export default function HomeScreen() {
         <SectionHeader title="Recommended Shops" />
         {loading ? (
           <View style={styles.skeletonRow}>
-            {[0, 1, 2].map((i) => (
-              <ShopCardSkeleton key={i} />
-            ))}
+            {[0, 1, 2].map((i) => <ShopCardSkeleton key={i} />)}
           </View>
         ) : (
           <FlatList
@@ -326,7 +264,7 @@ export default function HomeScreen() {
             scrollEnabled
           />
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -334,13 +272,29 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
+  /* Fixed overlay header */
+  fixedHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
+  headerBorder: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
+  },
+
   /* App bar */
   appBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingVertical: 10,
   },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   logoSwift: { fontSize: 20 },
