@@ -198,7 +198,7 @@ export default function SuccessScreen() {
 
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => router.replace('/(tabs)/index')}
+            onPress={() => router.replace('/')}
             style={[
               styles.secondaryBtn,
               { borderColor: colors.border, borderRadius: colors.radius },
