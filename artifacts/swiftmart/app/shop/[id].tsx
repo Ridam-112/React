@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 9, fontFamily: 'Inter_700Bold' },
 
   /* Hero */
-  heroContainer: { width: '100%', height: 220 },
+  heroContainer: { height: 220, marginHorizontal: -H_PAD },
   heroImage: { width: '100%', height: '100%' },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
