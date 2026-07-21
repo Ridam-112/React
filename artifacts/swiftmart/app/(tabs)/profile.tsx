@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { NOTIFICATIONS } from '@/constants/data';
+import { useAuth } from '@/context/AuthContext';
 
 type MenuItem = { icon: string; label: string; route?: string };
 
@@ -26,7 +29,28 @@ const MENU: MenuItem[] = [
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { user, signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
   const unreadCount = NOTIFICATIONS.filter((n) => !n.read).length;
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            setSigningOut(true);
+            await signOut();
+            router.replace('/auth');
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <ScrollView
@@ -77,7 +101,7 @@ export default function ProfileScreen() {
               },
             ]}
           >
-            RK
+            {user ? user.name.slice(0, 2).toUpperCase() : 'RK'}
           </Text>
         </View>
         <View style={styles.userInfo}>
@@ -87,7 +111,7 @@ export default function ProfileScreen() {
               { color: colors.foreground, fontFamily: 'Inter_600SemiBold' },
             ]}
           >
-            Rahul Kumar
+            {user?.name ?? 'Rahul Kumar'}
           </Text>
           <Text
             style={[
@@ -98,7 +122,7 @@ export default function ProfileScreen() {
               },
             ]}
           >
-            +91 98765 43210
+            {user?.email ?? user?.phone ?? '+91 98765 43210'}
           </Text>
         </View>
         <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => router.push('/profile/edit')}>
@@ -176,8 +200,14 @@ export default function ProfileScreen() {
           },
         ]}
         activeOpacity={0.8}
+        onPress={handleSignOut}
+        disabled={signingOut}
       >
-        <Feather name="log-out" size={18} color={colors.destructive} />
+        {signingOut ? (
+          <ActivityIndicator size="small" color={colors.destructive} />
+        ) : (
+          <Feather name="log-out" size={18} color={colors.destructive} />
+        )}
         <Text
           style={[
             styles.signOutText,
@@ -187,7 +217,7 @@ export default function ProfileScreen() {
             },
           ]}
         >
-          Sign Out
+          {signingOut ? 'Signing out…' : 'Sign Out'}
         </Text>
       </TouchableOpacity>
     </ScrollView>
