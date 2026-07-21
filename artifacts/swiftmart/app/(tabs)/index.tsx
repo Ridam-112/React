@@ -1,10 +1,9 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
-  Animated,
   FlatList,
   Image,
-  Platform,
   RefreshControl,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -50,23 +49,6 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Scroll position drives the header overlay
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const nativeDriver = Platform.OS !== 'web';
-
-  // Header background fades from transparent → solid between 0–80 px of scroll
-  const headerBgOpacity = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-  // Subtle bottom border appears once header is solid
-  const headerBorderOpacity = scrollY.interpolate({
-    inputRange: [60, 90],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 1600);
     return () => clearTimeout(t);
@@ -81,39 +63,32 @@ export default function HomeScreen() {
     }, 1500);
   }, []);
 
-  // Height of the fixed app bar (used to push content down)
-  const APP_BAR_H = insets.top + 58;
   const scrollPaddingBottom = 96 + (insets.bottom > 0 ? insets.bottom : 0);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* ── Fixed overlay header ───────────────────────────────────── */}
-      <View style={[styles.fixedHeader, { paddingTop: insets.top }]} pointerEvents="box-none">
-        {/* Animated background layer */}
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: colors.background, opacity: headerBgOpacity },
-          ]}
-        />
-        {/* Animated bottom border */}
-        <Animated.View
-          style={[
-            styles.headerBorder,
-            { backgroundColor: colors.border, opacity: headerBorderOpacity },
-          ]}
-        />
-
-        {/* App bar content */}
-        <View style={styles.appBar} pointerEvents="box-none">
+      {/* ── Scrollable Content ────────────────────────────────────── */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+        contentContainerStyle={{ paddingBottom: scrollPaddingBottom, paddingTop: insets.top }}
+      >
+        {/* ── Header (scrolls with content) ─────────────────────── */}
+        <View style={styles.appBar}>
           <Image
             source={require('@/assets/images/swiftmart-logo.png')}
             style={{ width: 120, height: 48 }}
             resizeMode="contain"
           />
-
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => router.push('/notifications')}>
               <Feather name="bell" size={22} color={colors.foreground} />
@@ -123,27 +98,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
-
-      {/* ── Scrollable Content ────────────────────────────────────── */}
-      <Animated.ScrollView
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: nativeDriver }
-        )}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-            progressViewOffset={APP_BAR_H}
-          />
-        }
-        contentContainerStyle={{ paddingBottom: scrollPaddingBottom, paddingTop: APP_BAR_H }}
-      >
         {/* Greeting — scrolls away */}
         <View style={styles.greetingRow}>
           <Text style={[styles.greeting, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]}>
