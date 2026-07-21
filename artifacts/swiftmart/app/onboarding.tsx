@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { useAuth, needsOnboarding } from '@/context/AuthContext';
+import { useAddresses } from '@/context/AddressContext';
 
 /* ─── Reusable animated input ────────────────────────────────────── */
 function Field({
@@ -127,6 +128,7 @@ export default function OnboardingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, completeProfile } = useAuth();
+  const { addAddress } = useAddresses();
 
   // Pre-fill name from what auth provided
   const [name, setName]       = useState(user?.name ?? '');
@@ -164,10 +166,21 @@ export default function OnboardingScreen() {
     setErrors({});
     setLoading(true);
     try {
+      const resolvedPhone = isTruecaller ? (user?.phone ?? '') : phone.trim();
       await completeProfile({
         name: name.trim(),
-        phone: isTruecaller ? user?.phone : phone.trim(),
+        phone: resolvedPhone,
         address: address.trim(),
+      });
+      // Save address to the user's saved-addresses list as the default entry
+      await addAddress({
+        tag: 'Home',
+        name: name.trim(),
+        line: address.trim(),
+        city: '',
+        pincode: '',
+        phone: resolvedPhone,
+        isDefault: true,
       });
       router.replace('/');
     } catch {

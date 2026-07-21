@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   FlatList,
   Image,
+  Modal,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -10,6 +11,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -18,6 +20,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { CATEGORIES, PRODUCTS, SHOPS, OFFERS, NOTIFICATIONS } from '@/constants/data';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { useAddresses, SavedAddress } from '@/context/AddressContext';
 import { SectionHeader } from '@/components/SectionHeader';
 import { ProductCard } from '@/components/ProductCard';
 import { ShopCard } from '@/components/ShopCard';
@@ -40,9 +43,7 @@ function getGreeting(): string {
   return 'Good Night';
 }
 
-/** Deterministic seeded shuffle so each user sees a stable, different order. */
 function seededShuffle<T>(arr: T[], seed: string): T[] {
-  // Simple hash of the seed string → integer
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     hash = (Math.imul(31, hash) + seed.charCodeAt(i)) | 0;
@@ -56,9 +57,151 @@ function seededShuffle<T>(arr: T[], seed: string): T[] {
   return copy;
 }
 
-/** First name only from a full name string. */
 function firstName(name: string): string {
   return name.split(' ')[0];
+}
+
+/** Short label for the location pill — first segment before a comma. */
+function shortAddress(addr: SavedAddress): string {
+  const first = addr.line.split(',')[0].trim();
+  return first.length > 20 ? first.slice(0, 20) + '…' : first;
+}
+
+const TAG_ICON: Record<string, React.ComponentProps<typeof Feather>['name']> = {
+  Home: 'home',
+  Work: 'briefcase',
+  Other: 'map-pin',
+};
+
+/* ─── Address picker bottom sheet ────────────────────────────────── */
+function AddressPicker({
+  visible,
+  onClose,
+  addresses,
+  selectedAddress,
+  onSelect,
+  colors,
+  insets,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  addresses: SavedAddress[];
+  selectedAddress: SavedAddress | null;
+  onSelect: (id: string) => void;
+  colors: ReturnType<typeof useColors>;
+  insets: ReturnType<typeof useSafeAreaInsets>;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      {/* Scrim */}
+      <TouchableOpacity style={styles.scrim} activeOpacity={1} onPress={onClose} />
+
+      {/* Sheet */}
+      <View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.card,
+            paddingBottom: insets.bottom > 0 ? insets.bottom + 8 : 24,
+            ...Platform.select({
+              web: { boxShadow: '0px -8px 32px rgba(0,0,0,0.5)' },
+              default: {
+                shadowColor: '#000',
+                shadowOpacity: 0.5,
+                shadowRadius: 24,
+                shadowOffset: { width: 0, height: -6 },
+                elevation: 20,
+              },
+            }),
+          },
+        ]}
+      >
+        {/* Handle */}
+        <View style={[styles.handle, { backgroundColor: colors.border }]} />
+
+        <Text style={[styles.sheetTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
+          Deliver to
+        </Text>
+
+        {addresses.length === 0 ? (
+          <View style={styles.noAddr}>
+            <Feather name="map-pin" size={32} color={colors.mutedForeground} />
+            <Text style={[styles.noAddrText, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+              No saved addresses yet
+            </Text>
+          </View>
+        ) : (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={{ maxHeight: 320 }}
+            contentContainerStyle={{ gap: 10 }}
+          >
+            {addresses.map((addr) => {
+              const isSelected = selectedAddress?.id === addr.id;
+              return (
+                <TouchableOpacity
+                  key={addr.id}
+                  activeOpacity={0.8}
+                  onPress={() => { onSelect(addr.id); onClose(); }}
+                  style={[
+                    styles.addrRow,
+                    {
+                      backgroundColor: isSelected ? colors.primary + '14' : colors.background,
+                      borderColor: isSelected ? colors.primary : colors.border,
+                      borderRadius: colors.radius,
+                    },
+                  ]}
+                >
+                  <View style={[styles.addrIcon, { backgroundColor: colors.primary + '20' }]}>
+                    <Feather name={TAG_ICON[addr.tag]} size={16} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.addrTag, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]}>
+                      {addr.tag}
+                      {addr.isDefault ? (
+                        <Text style={{ color: colors.primary, fontFamily: 'Inter_400Regular', fontSize: 11 }}>
+                          {'  '}Default
+                        </Text>
+                      ) : null}
+                    </Text>
+                    <Text
+                      style={[styles.addrLine, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}
+                      numberOfLines={2}
+                    >
+                      {addr.line}
+                      {addr.city ? `, ${addr.city}` : ''}
+                      {addr.pincode ? ` – ${addr.pincode}` : ''}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <Feather name="check-circle" size={18} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {/* Add new */}
+        <TouchableOpacity
+          style={[styles.addNewBtn, { borderColor: colors.border, borderRadius: colors.radius }]}
+          activeOpacity={0.8}
+          onPress={() => { onClose(); router.push('/profile/addresses'); }}
+        >
+          <Feather name="plus" size={16} color={colors.primary} />
+          <Text style={[styles.addNewText, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>
+            Add New Address
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
 }
 
 /* ─── Screen ─────────────────────────────────────────────────────── */
@@ -66,11 +209,13 @@ export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { addresses, selectedAddress, selectAddress } = useAddresses();
   useCart();
 
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [pickerVisible, setPickerVisible] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 1600);
@@ -80,14 +225,9 @@ export default function HomeScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setRefreshing(false);
-    }, 1500);
+    setTimeout(() => { setLoading(false); setRefreshing(false); }, 1500);
   }, []);
 
-  // Each signed-in user sees products and shops in a different order,
-  // deterministically shuffled by their user ID. Guests see the default order.
   const personalizedProducts = useMemo(
     () => (user ? seededShuffle(PRODUCTS, user.id) : PRODUCTS),
     [user?.id],
@@ -96,18 +236,20 @@ export default function HomeScreen() {
     () => (user ? seededShuffle(SHOPS, user.id + '_shops') : SHOPS),
     [user?.id],
   );
-  // Each user also gets a different subset of offers (rotate by user hash)
   const personalizedOffers = useMemo(() => {
     if (!user) return OFFERS;
-    const shuffled = seededShuffle(OFFERS, user.id + '_offers');
-    return shuffled.slice(0, 2); // show 2 personalised offers
+    return seededShuffle(OFFERS, user.id + '_offers').slice(0, 2);
   }, [user?.id]);
 
-  const unreadCount = user
-    ? NOTIFICATIONS.filter((n) => !n.read).length
-    : 0;
-
+  const unreadCount = user ? NOTIFICATIONS.filter((n) => !n.read).length : 0;
   const scrollPaddingBottom = 96 + (insets.bottom > 0 ? insets.bottom : 0);
+
+  /* Location pill label */
+  const locationLabel = useMemo(() => {
+    if (!user) return 'Set location';
+    if (selectedAddress) return shortAddress(selectedAddress);
+    return 'Add address';
+  }, [user, selectedAddress]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -161,16 +303,33 @@ export default function HomeScreen() {
         </View>
 
         {/* ── Delivery Location ────────────────────────────────────── */}
-        <TouchableOpacity style={styles.deliveryRow} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.deliveryRow}
+          activeOpacity={0.7}
+          onPress={() => {
+            if (user) {
+              if (addresses.length > 0) {
+                setPickerVisible(true);
+              } else {
+                router.push('/profile/addresses');
+              }
+            }
+          }}
+        >
           <View style={[styles.locationPill, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '40' }]}>
             <Ionicons name="location-sharp" size={13} color={colors.primary} />
             <Text style={[styles.deliveringTo, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
               Delivering to{' '}
             </Text>
-            <Text style={[styles.locationText, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
-              Balurghat
+            <Text
+              style={[styles.locationText, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}
+              numberOfLines={1}
+            >
+              {locationLabel}
             </Text>
-            <Feather name="chevron-down" size={13} color={colors.primary} style={{ marginLeft: 2 }} />
+            {user && (
+              <Feather name="chevron-down" size={13} color={colors.primary} style={{ marginLeft: 2 }} />
+            )}
           </View>
         </TouchableOpacity>
 
@@ -228,10 +387,8 @@ export default function HomeScreen() {
           scrollEnabled
         />
 
-        {/* ── Flash Deals ──────────────────────────────────────────── */}
         <FlashDeals loading={loading} onSeeAll={() => router.push('/flash-deals')} />
 
-        {/* ── Products: personalised order for signed-in users ─────── */}
         <SectionHeader
           title={user ? 'Recommended for You' : 'Popular Near You'}
           onSeeAll={() => router.push('/products')}
@@ -252,7 +409,6 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* ── Offers: personalised for signed-in users ─────────────── */}
         <SectionHeader
           title={user ? 'Your Offers' : 'Best Offers For You'}
           onSeeAll={() => router.push('/offers')}
@@ -261,7 +417,6 @@ export default function HomeScreen() {
           <OfferCard key={offer.id} offer={offer} />
         ))}
 
-        {/* ── Shops: personalised order for signed-in users ────────── */}
         <SectionHeader
           title={user ? 'Top Picks Near You' : 'Recommended Shops'}
           onSeeAll={() => router.push('/shops')}
@@ -282,6 +437,17 @@ export default function HomeScreen() {
           />
         )}
       </ScrollView>
+
+      {/* ── Address picker modal ─────────────────────────────────── */}
+      <AddressPicker
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        addresses={addresses}
+        selectedAddress={selectedAddress}
+        onSelect={selectAddress}
+        colors={colors}
+        insets={insets}
+      />
     </View>
   );
 }
@@ -289,7 +455,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  /* App bar */
   appBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -300,33 +465,17 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
   iconBtn: { position: 'relative' },
   badge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
+    position: 'absolute', top: -6, right: -6,
+    minWidth: 16, height: 16, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
   },
   badgeText: { fontSize: 9, color: '#FFFFFF', fontFamily: 'Inter_700Bold' },
 
-  /* Greeting */
-  greetingRow: {
-    paddingHorizontal: 16,
-    paddingTop: 2,
-    paddingBottom: 10,
-    gap: 2,
-  },
+  greetingRow: { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10, gap: 2 },
   greeting: { fontSize: 18 },
   greetingSub: { fontSize: 13 },
 
-  /* Delivery row */
-  deliveryRow: {
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-  },
+  deliveryRow: { paddingHorizontal: 16, paddingBottom: 10 },
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -336,11 +485,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     gap: 4,
+    maxWidth: '85%',
   },
   deliveringTo: { fontSize: 12 },
-  locationText: { fontSize: 12 },
+  locationText: { fontSize: 12, flexShrink: 1 },
 
-  /* Search */
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -353,7 +502,6 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 14, padding: 0 },
 
-  /* Guest banner */
   guestBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -369,11 +517,46 @@ const styles = StyleSheet.create({
   guestBannerTitle: { fontSize: 13 },
   guestBannerSub: { fontSize: 11, marginTop: 1 },
 
-  /* Skeleton rows */
-  skeletonRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingBottom: 4,
+  skeletonRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingBottom: 4 },
+
+  /* Address picker */
+  scrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 14,
+  },
+  handle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 6 },
+  sheetTitle: { fontSize: 18 },
+  noAddr: { alignItems: 'center', paddingVertical: 24, gap: 8 },
+  noAddrText: { fontSize: 14 },
+  addrRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderWidth: 1.5,
+  },
+  addrIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  addrTag: { fontSize: 14, marginBottom: 2 },
+  addrLine: { fontSize: 12, lineHeight: 17 },
+  addNewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 14,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  addNewText: { fontSize: 14 },
 });

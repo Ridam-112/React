@@ -15,10 +15,18 @@ import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { CartProvider } from '@/context/CartContext';
 import { AuthProvider, useAuth, needsOnboarding } from '@/context/AuthContext';
+import { AddressProvider } from '@/context/AddressContext';
+import { ReactNode } from 'react';
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+/** Bridges AuthContext → AddressProvider so userId is always in sync. */
+function AddressWrapper({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  return <AddressProvider userId={user?.id ?? null}>{children}</AddressProvider>;
+}
 
 /** Redirects a signed-in user to onboarding if their profile is incomplete. */
 function OnboardingGuard() {
@@ -85,13 +93,15 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <CartProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <KeyboardProvider>
-                  <RootLayoutNav />
-                </KeyboardProvider>
-              </GestureHandlerRootView>
-            </CartProvider>
+            <AddressWrapper>
+              <CartProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <KeyboardProvider>
+                    <RootLayoutNav />
+                  </KeyboardProvider>
+                </GestureHandlerRootView>
+              </CartProvider>
+            </AddressWrapper>
           </AuthProvider>
         </QueryClientProvider>
       </ErrorBoundary>
