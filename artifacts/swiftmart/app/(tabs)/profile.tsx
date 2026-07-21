@@ -35,8 +35,49 @@ export default function ProfileScreen() {
   const handleSignOut = async () => {
     setSigningOut(true);
     await signOut();
-    router.replace('/auth');
+    setSigningOut(false);
   };
+
+  if (!user) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, flex: 1 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
+            Profile
+          </Text>
+        </View>
+        <View style={styles.guestState}>
+          <View style={[styles.guestAvatar, { backgroundColor: colors.muted }]}>
+            <Feather name="user" size={40} color={colors.mutedForeground} />
+          </View>
+          <Text style={[styles.guestTitle, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]}>
+            You're browsing as a guest
+          </Text>
+          <Text style={[styles.guestSub, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+            Sign in to track orders, save addresses, and shop faster.
+          </Text>
+          <TouchableOpacity
+            style={[styles.signInBtn, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
+            activeOpacity={0.85}
+            onPress={() => router.push('/auth')}
+          >
+            <Text style={[styles.signInBtnText, { color: colors.primaryForeground, fontFamily: 'Inter_700Bold' }]}>
+              Sign In
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.signUpLink]}
+            onPress={() => router.push('/auth/email')}
+          >
+            <Text style={[styles.signUpLinkText, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+              Don't have an account?{' '}
+              <Text style={{ color: colors.primary, fontFamily: 'Inter_600SemiBold' }}>Sign up</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -270,4 +311,32 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   signOutText: { fontSize: 15 },
+
+  // Guest state
+  guestState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 12,
+    marginTop: -40,
+  },
+  guestAvatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  guestTitle: { fontSize: 18, textAlign: 'center' },
+  guestSub: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 8 },
+  signInBtn: {
+    width: '100%',
+    paddingVertical: 15,
+    alignItems: 'center',
+  },
+  signInBtnText: { fontSize: 16 },
+  signUpLink: { paddingVertical: 8 },
+  signUpLinkText: { fontSize: 14 },
 });
