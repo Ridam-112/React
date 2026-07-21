@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,23 +32,10 @@ export default function ProfileScreen() {
   const [signingOut, setSigningOut] = useState(false);
   const unreadCount = NOTIFICATIONS.filter((n) => !n.read).length;
 
-  const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            setSigningOut(true);
-            await signOut();
-            router.replace('/auth');
-          },
-        },
-      ]
-    );
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await signOut();
+    router.replace('/auth');
   };
 
   return (
