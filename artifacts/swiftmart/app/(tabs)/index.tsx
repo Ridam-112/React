@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Animated,
   FlatList,
+  Image,
   Platform,
   RefreshControl,
   StatusBar,
@@ -107,22 +108,11 @@ export default function HomeScreen() {
 
         {/* App bar content */}
         <View style={styles.appBar} pointerEvents="box-none">
-          <TouchableOpacity
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            activeOpacity={0.7}
-          >
-            <Feather name="menu" size={24} color={colors.foreground} />
-          </TouchableOpacity>
-
-          <View style={styles.logoRow}>
-            <MaterialCommunityIcons name="lightning-bolt" size={20} color={colors.primary} />
-            <Text style={[styles.logoSwift, { color: colors.primary, fontFamily: 'Inter_700Bold' }]}>
-              Swift
-            </Text>
-            <Text style={[styles.logoMart, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
-              Mart
-            </Text>
-          </View>
+          <Image
+            source={require('@/assets/images/swiftmart-logo.png')}
+            style={{ width: 120, height: 48 }}
+            resizeMode="contain"
+          />
 
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => router.push('/notifications')}>
