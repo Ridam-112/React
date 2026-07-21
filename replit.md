@@ -2,6 +2,12 @@
 
 A pnpm monorepo with a SwiftMart Expo/React Native mobile app and an Express 5 API server backed by PostgreSQL.
 
+## Status
+
+- Dependencies installed via `pnpm install`
+- **API Server** — running (Express 5, `artifacts/api-server: API Server` workflow)
+- **SwiftMart Expo app** — running (Metro bundler, `artifacts/swiftmart: expo` workflow)
+
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — build and run the API server (port from `$PORT`)
