@@ -17,6 +17,7 @@ export type Product = {
   discount: number;
   image: ImageSourcePropType;
   category?: string;
+  description?: string;
 };
 
 export type Shop = {
@@ -58,6 +59,7 @@ export const PRODUCTS: Product[] = [
     discount: 26,
     image: require('@/assets/images/product1.png'),
     category: 'Fruits & Veg',
+    description: 'Hand-picked fresh apples sourced from Himachal Pradesh orchards. Crisp, naturally sweet, and rich in dietary fibre, vitamin C, and antioxidants. Great for snacking, juicing, or baking. Store in a cool, dry place for best freshness.',
   },
   {
     id: '2',
@@ -68,6 +70,7 @@ export const PRODUCTS: Product[] = [
     discount: 20,
     image: require('@/assets/images/product2.png'),
     category: 'Dairy',
+    description: 'Full-cream whole milk pasteurised and packed fresh daily. A rich source of calcium, protein, and essential vitamins. Perfect for drinking, cooking, making chai, or adding to cereals. Best consumed before the printed best-before date.',
   },
   {
     id: '3',
@@ -78,6 +81,7 @@ export const PRODUCTS: Product[] = [
     discount: 20,
     image: require('@/assets/images/product3.png'),
     category: 'Medicines',
+    description: 'Paracetamol 500 mg tablets for fast, effective relief from fever, headaches, body aches, and mild to moderate pain. Suitable for adults and children above 12 years. Do not exceed the recommended dose. Keep out of reach of children.',
   },
   {
     id: '4',
@@ -88,6 +92,7 @@ export const PRODUCTS: Product[] = [
     discount: 24,
     image: require('@/assets/images/product4.png'),
     category: 'Grocery',
+    description: 'Wholesome brown bread baked with whole-wheat flour, high in fibre and essential nutrients. No artificial preservatives or colours. Soft texture with a slightly nutty flavour — perfect for sandwiches, toast, or a quick healthy breakfast.',
   },
   {
     id: '5',
@@ -98,6 +103,7 @@ export const PRODUCTS: Product[] = [
     discount: 20,
     image: require('@/assets/images/product5.png'),
     category: 'Food',
+    description: 'Restaurant-style chicken biryani made with long-grain basmati rice, tender chicken pieces, and a slow-cooked blend of whole spices and saffron. Ready to heat and serve in minutes. Best enjoyed with raita and sliced onions.',
   },
   {
     id: '6',
@@ -108,6 +114,7 @@ export const PRODUCTS: Product[] = [
     discount: 19,
     image: require('@/assets/images/product1.png'),
     category: 'Dairy',
+    description: 'Free-range eggs from hens raised on natural grain feed. Each egg is washed, graded, and packed to ensure freshness. High in protein and essential amino acids. Ideal for boiling, scrambling, baking, or your morning omelette.',
   },
   {
     id: '7',
@@ -118,6 +125,7 @@ export const PRODUCTS: Product[] = [
     discount: 22,
     image: require('@/assets/images/product2.png'),
     category: 'Grocery',
+    description: 'Premium quality toor (arhar) dal, machine cleaned and triple-sorted to remove impurities. A staple protein source in Indian households, packed with iron and fibre. Cooks quickly and has a mild, earthy flavour. Great for dal tadka and sambar.',
   },
   {
     id: '8',
@@ -128,6 +136,7 @@ export const PRODUCTS: Product[] = [
     discount: 22,
     image: require('@/assets/images/product4.png'),
     category: 'Grocery',
+    description: 'Aashirvaad Select whole wheat atta made from the finest MP Sharbati wheat. Stone-ground to retain the natural goodness of the wheat grain — rich in fibre, vitamins, and minerals. Makes soft, fluffy rotis that stay fresh for longer.',
   },
 ];
 
@@ -142,6 +151,7 @@ export const FLASH_DEALS: Product[] = [
     discount: 34,
     image: require('@/assets/images/product1.png'),
     category: 'Grocery',
+    description: 'Premium aged basmati rice with an extra-long grain and signature fragrance. Sourced from the foothills of the Himalayas and aged for 12 months for a fluffier texture. Ideal for biryani, pulao, or everyday meals. Each grain stays separate after cooking.',
   },
   {
     id: 'f2',
@@ -152,6 +162,7 @@ export const FLASH_DEALS: Product[] = [
     discount: 40,
     image: require('@/assets/images/product2.png'),
     category: 'Dairy',
+    description: 'Amul pasteurised butter made from fresh cream with a rich, creamy texture and a mild, pleasant flavour. Perfect for spreading on toast, cooking, baking, and finishing dal or vegetables. A trusted Indian household staple since 1946.',
   },
   {
     id: 'f3',
@@ -162,6 +173,7 @@ export const FLASH_DEALS: Product[] = [
     discount: 40,
     image: require('@/assets/images/product3.png'),
     category: 'Grocery',
+    description: 'Dettol Original antibacterial soap clinically proven to protect against 100 illness-causing germs. Contains the trusted Dettolene antiseptic ingredient. Leaves skin feeling clean, refreshed, and hygienically protected. Suitable for the whole family.',
   },
   {
     id: 'f4',
@@ -172,6 +184,7 @@ export const FLASH_DEALS: Product[] = [
     discount: 35,
     image: require('@/assets/images/product4.png'),
     category: 'Grocery',
+    description: 'Tata Tea Gold is a blend of fine Assam tea leaves with a rich, bold flavour and a golden colour. Crafted with 15% long leaf tea for a superior brew. Brews a strong, aromatic cup that pairs perfectly with milk. Freshness-locked packaging.',
   },
   {
     id: 'f5',
@@ -182,6 +195,7 @@ export const FLASH_DEALS: Product[] = [
     discount: 35,
     image: require('@/assets/images/product5.png'),
     category: 'Food',
+    description: "Lays Classic salted potato chips — light, crispy, and perfectly salted for that irresistible crunch. Made from select quality potatoes, cooked in sunflower oil. A guilt-free snack for movies, parties, or anytime munchies. India's favourite chip since 1995.",
   },
 ];
 

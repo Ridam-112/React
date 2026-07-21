@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
@@ -59,8 +60,14 @@ export function ProductCard({ product, cardWidth }: Props) {
     addToCart(product);
   };
 
+  const handleCardPress = () => {
+    router.push(`/product/${product.id}`);
+  };
+
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.92}
+      onPress={handleCardPress}
       style={[
         styles.card,
         {
@@ -185,7 +192,7 @@ export function ProductCard({ product, cardWidth }: Props) {
           </View>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
