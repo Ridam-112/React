@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
@@ -60,6 +61,7 @@ export default function CategoriesScreen() {
               },
             ]}
             activeOpacity={0.8}
+            onPress={() => router.push(`/category/${item.id}`)}
           >
             <View
               style={[

@@ -150,7 +150,7 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
-          renderItem={({ item }) => <CategoryItem category={item} />}
+          renderItem={({ item }) => <CategoryItem category={item} onPress={() => router.push(`/category/${item.id}`)} />}
           scrollEnabled
         />
 
