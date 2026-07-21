@@ -40,6 +40,98 @@ export type Offer = {
   image: ImageSourcePropType;
 };
 
+export type NotificationKind = 'order' | 'offer' | 'system' | 'delivery';
+
+export type AppNotification = {
+  id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  time: string;       // human-readable relative time
+  read: boolean;
+  actionLabel?: string;
+  actionRoute?: string;
+};
+
+export const NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'n1',
+    kind: 'delivery',
+    title: 'Out for delivery!',
+    body: 'Your order #SM2041 is out for delivery. Expected in 12 minutes.',
+    time: '5 min ago',
+    read: false,
+    actionLabel: 'Track Order',
+    actionRoute: '/orders',
+  },
+  {
+    id: 'n2',
+    kind: 'order',
+    title: 'Order confirmed',
+    body: 'Your order #SM2040 from Fresh Basket has been confirmed and is being packed.',
+    time: '1 hr ago',
+    read: false,
+    actionLabel: 'View Order',
+    actionRoute: '/orders',
+  },
+  {
+    id: 'n3',
+    kind: 'offer',
+    title: '🎉 Flash Deal is live!',
+    body: 'Grab up to 40% off on Fresh Apples, Toned Milk and more. Hurry — ends in 2 hrs!',
+    time: '2 hr ago',
+    read: false,
+    actionLabel: 'Shop Now',
+    actionRoute: '/flash-deals',
+  },
+  {
+    id: 'n4',
+    kind: 'offer',
+    title: 'Exclusive offer just for you',
+    body: 'Use SWIFT20 to get ₹20 off your next order above ₹199. Valid till midnight.',
+    time: 'Yesterday',
+    read: true,
+    actionLabel: 'See Offers',
+    actionRoute: '/offers',
+  },
+  {
+    id: 'n5',
+    kind: 'order',
+    title: 'Order delivered ✓',
+    body: 'Order #SM2039 was delivered successfully. Rate your experience.',
+    time: 'Yesterday',
+    read: true,
+    actionLabel: 'Rate Now',
+    actionRoute: '/orders',
+  },
+  {
+    id: 'n6',
+    kind: 'system',
+    title: 'New shops in your area',
+    body: 'Meghna Dairy and 3 more shops just joined SwiftMart near Balurghat.',
+    time: '2 days ago',
+    read: true,
+    actionLabel: 'Browse Shops',
+    actionRoute: '/shops',
+  },
+  {
+    id: 'n7',
+    kind: 'offer',
+    title: 'Weekend Super Saver',
+    body: '15% off on all grocery orders this weekend. No minimum order value required.',
+    time: '3 days ago',
+    read: true,
+  },
+  {
+    id: 'n8',
+    kind: 'system',
+    title: 'App updated',
+    body: 'SwiftMart has been updated with faster delivery tracking and new shop features.',
+    time: '5 days ago',
+    read: true,
+  },
+];
+
 export const CATEGORIES: Category[] = [
   { id: '1', name: 'Grocery',      icon: 'cart-outline',    color: '#4CAF50', shops: 120 },
   { id: '2', name: 'Medicines',    icon: 'medical-bag',     color: '#F44336', shops: 85  },

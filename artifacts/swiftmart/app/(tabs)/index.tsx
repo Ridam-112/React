@@ -125,7 +125,7 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity style={styles.iconBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => router.push('/notifications')}>
               <Feather name="bell" size={22} color={colors.foreground} />
               <View style={[styles.badge, { backgroundColor: '#EF4444' }]}>
                 <Text style={styles.badgeText}>3</Text>
