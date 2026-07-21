@@ -141,7 +141,7 @@ export default function EmailAuthScreen() {
       } else {
         await signUpWithEmail(name, email, password);
       }
-      router.replace('/');
+      router.replace('/onboarding');
     } catch {
       setErrors({ submit: 'Something went wrong. Please try again.' });
     } finally {

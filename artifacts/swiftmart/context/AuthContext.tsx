@@ -6,9 +6,18 @@ export type AuthUser = {
   name: string;
   email?: string;
   phone?: string;
+  address?: string;
   avatar?: string;
   provider: 'google' | 'facebook' | 'truecaller' | 'email';
 };
+
+/** True when the mandatory post-login profile fields are still missing. */
+export function needsOnboarding(user: AuthUser): boolean {
+  if (!user.address) return true;
+  // Truecaller provides phone automatically; everyone else must supply it.
+  if (user.provider !== 'truecaller' && !user.phone) return true;
+  return false;
+}
 
 type AuthContextType = {
   user: AuthUser | null;
@@ -18,6 +27,7 @@ type AuthContextType = {
   signInWithTruecaller: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (name: string, email: string, password: string) => Promise<void>;
+  completeProfile: (updates: { name: string; phone?: string; address: string }) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -85,6 +95,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await persist({ id: 'em_001', name, email, provider: 'email' });
   };
 
+  /** Saves name, phone (if provided), and address onto the current user. */
+  const completeProfile = async (updates: { name: string; phone?: string; address: string }) => {
+    if (!user) return;
+    await persist({ ...user, ...updates });
+  };
+
   const signOut = async () => {
     await AsyncStorage.removeItem(AUTH_KEY);
     setUser(null);
@@ -100,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithTruecaller,
         signInWithEmail,
         signUpWithEmail,
+        completeProfile,
         signOut,
       }}
     >

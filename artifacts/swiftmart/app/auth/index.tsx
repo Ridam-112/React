@@ -135,7 +135,7 @@ export default function AuthScreen() {
     setBusy(provider);
     try {
       await fn();
-      router.replace('/');
+      router.replace('/onboarding');
     } finally {
       setBusy(null);
     }

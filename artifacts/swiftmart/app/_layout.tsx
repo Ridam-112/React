@@ -11,41 +11,56 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { CartProvider } from '@/context/CartContext';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, useAuth, needsOnboarding } from '@/context/AuthContext';
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+/** Redirects a signed-in user to onboarding if their profile is incomplete. */
+function OnboardingGuard() {
+  const { user, isLoading } = useAuth();
+  useEffect(() => {
+    if (!isLoading && user && needsOnboarding(user)) {
+      router.replace('/onboarding');
+    }
+  }, [user, isLoading]);
+  return null;
+}
+
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: 'Back' }}>
-      <Stack.Screen name="(tabs)"         options={{ headerShown: false }} />
-      <Stack.Screen name="products"       options={{ headerShown: false }} />
-      <Stack.Screen name="product/[id]"   options={{ headerShown: false }} />
-      <Stack.Screen name="shop/[id]"      options={{ headerShown: false }} />
-      <Stack.Screen name="notifications"   options={{ headerShown: false }} />
-      <Stack.Screen name="flash-deals"    options={{ headerShown: false }} />
-      <Stack.Screen name="offers"         options={{ headerShown: false }} />
-      <Stack.Screen name="shops"          options={{ headerShown: false }} />
-      <Stack.Screen name="order/[id]"               options={{ headerShown: false }} />
-      <Stack.Screen name="checkout/address"          options={{ headerShown: false }} />
-      <Stack.Screen name="checkout/payment"          options={{ headerShown: false }} />
-      <Stack.Screen name="checkout/confirm"          options={{ headerShown: false }} />
-      <Stack.Screen name="checkout/success"          options={{ headerShown: false }} />
-      <Stack.Screen name="profile/edit"              options={{ headerShown: false }} />
-      <Stack.Screen name="profile/addresses"         options={{ headerShown: false }} />
-      <Stack.Screen name="profile/payment-methods"   options={{ headerShown: false }} />
-      <Stack.Screen name="profile/order-history"     options={{ headerShown: false }} />
-      <Stack.Screen name="profile/help"              options={{ headerShown: false }} />
-      <Stack.Screen name="profile/settings"          options={{ headerShown: false }} />
-      <Stack.Screen name="category/[id]"             options={{ headerShown: false }} />
-      <Stack.Screen name="auth/index"               options={{ headerShown: false }} />
-      <Stack.Screen name="auth/email"               options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <OnboardingGuard />
+      <Stack screenOptions={{ headerBackTitle: 'Back' }}>
+        <Stack.Screen name="(tabs)"         options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding"     options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="products"       options={{ headerShown: false }} />
+        <Stack.Screen name="product/[id]"   options={{ headerShown: false }} />
+        <Stack.Screen name="shop/[id]"      options={{ headerShown: false }} />
+        <Stack.Screen name="notifications"   options={{ headerShown: false }} />
+        <Stack.Screen name="flash-deals"    options={{ headerShown: false }} />
+        <Stack.Screen name="offers"         options={{ headerShown: false }} />
+        <Stack.Screen name="shops"          options={{ headerShown: false }} />
+        <Stack.Screen name="order/[id]"               options={{ headerShown: false }} />
+        <Stack.Screen name="checkout/address"          options={{ headerShown: false }} />
+        <Stack.Screen name="checkout/payment"          options={{ headerShown: false }} />
+        <Stack.Screen name="checkout/confirm"          options={{ headerShown: false }} />
+        <Stack.Screen name="checkout/success"          options={{ headerShown: false }} />
+        <Stack.Screen name="profile/edit"              options={{ headerShown: false }} />
+        <Stack.Screen name="profile/addresses"         options={{ headerShown: false }} />
+        <Stack.Screen name="profile/payment-methods"   options={{ headerShown: false }} />
+        <Stack.Screen name="profile/order-history"     options={{ headerShown: false }} />
+        <Stack.Screen name="profile/help"              options={{ headerShown: false }} />
+        <Stack.Screen name="profile/settings"          options={{ headerShown: false }} />
+        <Stack.Screen name="category/[id]"             options={{ headerShown: false }} />
+        <Stack.Screen name="auth/index"               options={{ headerShown: false }} />
+        <Stack.Screen name="auth/email"               options={{ headerShown: false }} />
+      </Stack>
+    </>
   );
 }
 
