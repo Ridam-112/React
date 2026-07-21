@@ -6,7 +6,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/context/CartContext';
 
-const TAB_H = 64;
+const TAB_H = 70;
 const FLOAT_BOTTOM = 16;
 const FLOAT_H = 16; // horizontal margin on each side
 
@@ -35,7 +35,7 @@ function SwiftMartTabs() {
           borderTopWidth: 0,
           borderWidth: 1,
           borderColor: colors.border,
-          paddingBottom: 6,
+          paddingBottom: 10,
           paddingTop: 8,
           // Platform-specific shadows
           ...Platform.select({
@@ -52,7 +52,7 @@ function SwiftMartTabs() {
         tabBarLabelStyle: {
           fontSize: 11,
           fontFamily: 'Inter_500Medium',
-          marginTop: 2,
+          marginTop: 0,
         },
       }}
     >
@@ -68,7 +68,7 @@ function SwiftMartTabs() {
       <Tabs.Screen
         name="categories"
         options={{
-          title: 'Category',
+          title: 'Shop',
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons
               name="view-grid-outline"
