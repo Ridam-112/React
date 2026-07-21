@@ -6,12 +6,17 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/context/CartContext';
 
+const TAB_H = 64;
+const FLOAT_BOTTOM = 16;
+const FLOAT_H = 16; // horizontal margin on each side
+
 function SwiftMartTabs() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { itemCount } = useCart();
 
-  const tabBarHeight = 62 + (insets.bottom > 0 ? insets.bottom : 8);
+  // Bottom of floating bar sits FLOAT_BOTTOM above the safe-area edge
+  const bottomOffset = insets.bottom > 0 ? insets.bottom + FLOAT_BOTTOM - 8 : FLOAT_BOTTOM;
 
   return (
     <Tabs
@@ -20,17 +25,24 @@ function SwiftMartTabs() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
         tabBarStyle: {
+          position: 'absolute',
+          bottom: bottomOffset,
+          left: FLOAT_H,
+          right: FLOAT_H,
+          height: TAB_H,
           backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          height: tabBarHeight,
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+          borderRadius: 28,
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: colors.border,
+          paddingBottom: 6,
           paddingTop: 8,
-          elevation: 20,
+          // Shadows
+          elevation: 24,
           shadowColor: '#000000',
-          shadowOpacity: 0.4,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.55,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 8 },
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -123,7 +135,7 @@ const styles = StyleSheet.create({
   cartBtnOuter: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -30,
+    marginTop: -28,
   },
   cartBtn: {
     width: 56,
@@ -131,10 +143,10 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 10,
-    shadowOpacity: 0.45,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 5 },
+    elevation: 12,
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
   },
   cartBadge: {
     position: 'absolute',

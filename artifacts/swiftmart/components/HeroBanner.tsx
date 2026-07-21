@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Dimensions,
   FlatList,
+  Animated,
 } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 
@@ -25,12 +26,29 @@ export function HeroBanner() {
   const currentIndexRef = useRef(0);
   const [displayIndex, setDisplayIndex] = useState(0);
 
+  // One Animated.Value per dot, driven by displayIndex
+  const dotAnims = useRef(
+    BANNERS.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))
+  ).current;
+
+  const animateDots = (idx: number) => {
+    dotAnims.forEach((anim, i) => {
+      Animated.spring(anim, {
+        toValue: i === idx ? 1 : 0,
+        useNativeDriver: false,
+        speed: 20,
+        bounciness: 0,
+      }).start();
+    });
+  };
+
   useEffect(() => {
     const timer = setInterval(() => {
       const next = (currentIndexRef.current + 1) % BANNERS.length;
       currentIndexRef.current = next;
       flatListRef.current?.scrollToIndex({ index: next, animated: true });
       setDisplayIndex(next);
+      animateDots(next);
     }, 3000);
     return () => clearInterval(timer);
   }, []);
@@ -54,9 +72,10 @@ export function HeroBanner() {
         })}
         onViewableItemsChanged={({ viewableItems }) => {
           const idx = viewableItems[0]?.index;
-          if (idx != null) {
+          if (idx != null && idx !== currentIndexRef.current) {
             currentIndexRef.current = idx;
             setDisplayIndex(idx);
+            animateDots(idx);
           }
         }}
         viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
@@ -68,17 +87,24 @@ export function HeroBanner() {
           />
         )}
       />
-      {/* Page Dots */}
+
+      {/* Animated page dots */}
       <View style={styles.dots}>
         {BANNERS.map((_, i) => (
-          <View
+          <Animated.View
             key={i}
             style={[
               styles.dot,
               {
-                backgroundColor:
-                  i === displayIndex ? colors.primary : colors.border,
-                width: i === displayIndex ? 20 : 6,
+                width: dotAnims[i].interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [6, 22],
+                }),
+                opacity: dotAnims[i].interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.4, 1],
+                }),
+                backgroundColor: colors.primary,
               },
             ]}
           />

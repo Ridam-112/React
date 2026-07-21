@@ -1,5 +1,12 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useRef } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
@@ -14,14 +21,40 @@ export function ProductCard({ product }: Props) {
   const cartItem = items.find((i) => i.product.id === product.id);
   const qty = cartItem?.quantity ?? 0;
 
+  // Scale spring for the Add button press
+  const btnScale = useRef(new Animated.Value(1)).current;
+
+  const punchBtn = () => {
+    Animated.sequence([
+      Animated.spring(btnScale, {
+        toValue: 0.86,
+        useNativeDriver: true,
+        speed: 60,
+        bounciness: 0,
+      }),
+      Animated.spring(btnScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 18,
+        bounciness: 14,
+      }),
+    ]).start();
+  };
+
   const handleAdd = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    punchBtn();
     addToCart(product);
   };
 
   const handleDecrement = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     updateQuantity(product.id, qty - 1);
+  };
+
+  const handleIncrement = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    addToCart(product);
   };
 
   return (
@@ -36,16 +69,11 @@ export function ProductCard({ product }: Props) {
       ]}
     >
       {/* Discount Badge */}
-      <View
-        style={[styles.discountBadge, { backgroundColor: colors.primary }]}
-      >
+      <View style={[styles.discountBadge, { backgroundColor: colors.primary }]}>
         <Text
           style={[
             styles.discountText,
-            {
-              color: colors.primaryForeground,
-              fontFamily: 'Inter_700Bold',
-            },
+            { color: colors.primaryForeground, fontFamily: 'Inter_700Bold' },
           ]}
         >
           {product.discount}% OFF
@@ -53,11 +81,7 @@ export function ProductCard({ product }: Props) {
       </View>
 
       {/* Product Image */}
-      <Image
-        source={product.image}
-        style={styles.image}
-        resizeMode="contain"
-      />
+      <Image source={product.image} style={styles.image} resizeMode="contain" />
 
       {/* Info */}
       <View style={styles.info}>
@@ -90,42 +114,38 @@ export function ProductCard({ product }: Props) {
           <Text
             style={[
               styles.originalPrice,
-              {
-                color: colors.mutedForeground,
-                fontFamily: 'Inter_400Regular',
-              },
+              { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' },
             ]}
           >
             ₹{product.originalPrice}
           </Text>
         </View>
 
-        {/* Add / Quantity */}
+        {/* Add / Quantity controls */}
         {qty === 0 ? (
-          <TouchableOpacity
-            style={[
-              styles.addBtn,
-              {
-                backgroundColor: colors.primary,
-                borderRadius: colors.radius - 4,
-              },
-            ]}
-            onPress={handleAdd}
-            activeOpacity={0.8}
-          >
-            <Text
+          <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+            <TouchableOpacity
               style={[
-                styles.addBtnText,
+                styles.addBtn,
                 {
-                  color: colors.primaryForeground,
-                  fontFamily: 'Inter_600SemiBold',
+                  backgroundColor: colors.primary,
+                  borderRadius: colors.radius - 4,
                 },
               ]}
+              onPress={handleAdd}
+              activeOpacity={0.9}
             >
-              Add
-            </Text>
-            <Feather name="plus" size={14} color={colors.primaryForeground} />
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.addBtnText,
+                  { color: colors.primaryForeground, fontFamily: 'Inter_600SemiBold' },
+                ]}
+              >
+                Add
+              </Text>
+              <Feather name="plus" size={14} color={colors.primaryForeground} />
+            </TouchableOpacity>
+          </Animated.View>
         ) : (
           <View
             style={[
@@ -133,10 +153,15 @@ export function ProductCard({ product }: Props) {
               {
                 backgroundColor: colors.secondary,
                 borderRadius: colors.radius - 4,
+                borderColor: colors.border,
               },
             ]}
           >
-            <TouchableOpacity style={styles.qtyBtn} onPress={handleDecrement}>
+            <TouchableOpacity
+              style={styles.qtyBtn}
+              onPress={handleDecrement}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            >
               <Feather name="minus" size={14} color={colors.primary} />
             </TouchableOpacity>
             <Text
@@ -147,7 +172,11 @@ export function ProductCard({ product }: Props) {
             >
               {qty}
             </Text>
-            <TouchableOpacity style={styles.qtyBtn} onPress={handleAdd}>
+            <TouchableOpacity
+              style={styles.qtyBtn}
+              onPress={handleIncrement}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            >
               <Feather name="plus" size={14} color={colors.primary} />
             </TouchableOpacity>
           </View>
@@ -178,21 +207,14 @@ const styles = StyleSheet.create({
   info: { paddingHorizontal: 10, gap: 4 },
   name: { fontSize: 13 },
   weight: { fontSize: 11 },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   price: { fontSize: 15 },
-  originalPrice: {
-    fontSize: 12,
-    textDecorationLine: 'line-through',
-  },
+  originalPrice: { fontSize: 12, textDecorationLine: 'line-through' },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 7,
+    paddingVertical: 8,
     marginTop: 4,
     gap: 4,
   },
@@ -202,10 +224,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 4,
+    borderWidth: 1,
   },
   qtyBtn: {
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },

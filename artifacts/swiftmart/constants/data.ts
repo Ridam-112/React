@@ -35,14 +35,14 @@ export type Offer = {
 };
 
 export const CATEGORIES: Category[] = [
-  { id: '1', name: 'Grocery', icon: 'cart-outline', color: '#4CAF50', shops: 120 },
-  { id: '2', name: 'Medicines', icon: 'medical-bag', color: '#F44336', shops: 85 },
-  { id: '3', name: 'Food', icon: 'food-fork-drink', color: '#FF9800', shops: 200 },
-  { id: '4', name: 'Dairy', icon: 'cup-water', color: '#2196F3', shops: 45 },
-  { id: '5', name: 'Fruits & Veg', icon: 'leaf', color: '#8BC34A', shops: 90 },
-  { id: '6', name: 'Stationery', icon: 'pencil', color: '#9C27B0', shops: 30 },
-  { id: '7', name: 'Electronics', icon: 'cellphone', color: '#00BCD4', shops: 65 },
-  { id: '8', name: 'Fashion', icon: 'hanger', color: '#E91E63', shops: 110 },
+  { id: '1', name: 'Grocery',      icon: 'cart-outline',    color: '#4CAF50', shops: 120 },
+  { id: '2', name: 'Medicines',    icon: 'medical-bag',     color: '#F44336', shops: 85  },
+  { id: '3', name: 'Food',         icon: 'food-fork-drink', color: '#FF9800', shops: 200 },
+  { id: '4', name: 'Dairy',        icon: 'cup-water',       color: '#2196F3', shops: 45  },
+  { id: '5', name: 'Fruits & Veg', icon: 'leaf',            color: '#8BC34A', shops: 90  },
+  { id: '6', name: 'Stationery',   icon: 'pencil',          color: '#9C27B0', shops: 30  },
+  { id: '7', name: 'Electronics',  icon: 'cellphone',       color: '#00BCD4', shops: 65  },
+  { id: '8', name: 'Fashion',      icon: 'hanger',          color: '#E91E63', shops: 110 },
 ];
 
 export const PRODUCTS: Product[] = [
@@ -91,6 +91,82 @@ export const PRODUCTS: Product[] = [
     discount: 20,
     image: require('@/assets/images/product5.png'),
   },
+  {
+    id: '6',
+    name: 'Farm Fresh Eggs',
+    weight: '12 pcs',
+    originalPrice: 84,
+    discountedPrice: 68,
+    discount: 19,
+    image: require('@/assets/images/product1.png'),
+  },
+  {
+    id: '7',
+    name: 'Toor Dal',
+    weight: '1 kg',
+    originalPrice: 140,
+    discountedPrice: 109,
+    discount: 22,
+    image: require('@/assets/images/product2.png'),
+  },
+  {
+    id: '8',
+    name: 'Aashirvaad Atta',
+    weight: '5 kg',
+    originalPrice: 280,
+    discountedPrice: 219,
+    discount: 22,
+    image: require('@/assets/images/product4.png'),
+  },
+];
+
+/** Products shown in the Flash Deals section with steeper discounts */
+export const FLASH_DEALS: Product[] = [
+  {
+    id: 'f1',
+    name: 'Basmati Rice',
+    weight: '5 kg',
+    originalPrice: 450,
+    discountedPrice: 299,
+    discount: 34,
+    image: require('@/assets/images/product1.png'),
+  },
+  {
+    id: 'f2',
+    name: 'Amul Butter',
+    weight: '500 g',
+    originalPrice: 280,
+    discountedPrice: 168,
+    discount: 40,
+    image: require('@/assets/images/product2.png'),
+  },
+  {
+    id: 'f3',
+    name: 'Dettol Soap',
+    weight: '3 bars',
+    originalPrice: 120,
+    discountedPrice: 72,
+    discount: 40,
+    image: require('@/assets/images/product3.png'),
+  },
+  {
+    id: 'f4',
+    name: 'Tata Tea Gold',
+    weight: '250 g',
+    originalPrice: 195,
+    discountedPrice: 127,
+    discount: 35,
+    image: require('@/assets/images/product4.png'),
+  },
+  {
+    id: 'f5',
+    name: 'Lays Classic',
+    weight: '3 × 26 g',
+    originalPrice: 60,
+    discountedPrice: 39,
+    discount: 35,
+    image: require('@/assets/images/product5.png'),
+  },
 ];
 
 export const SHOPS: Shop[] = [
@@ -117,6 +193,14 @@ export const SHOPS: Shop[] = [
     rating: 4.5,
     deliveryTime: '15 min',
     image: require('@/assets/images/shop3.png'),
+  },
+  {
+    id: '4',
+    name: 'DairyBest',
+    category: 'Dairy',
+    rating: 4.7,
+    deliveryTime: '10 min',
+    image: require('@/assets/images/shop1.png'),
   },
 ];
 
