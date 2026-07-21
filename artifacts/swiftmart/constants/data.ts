@@ -27,6 +27,8 @@ export type Shop = {
   rating: number;
   deliveryTime: string;
   image: ImageSourcePropType;
+  productCategories: string[];
+  description?: string;
 };
 
 export type Offer = {
@@ -207,6 +209,8 @@ export const SHOPS: Shop[] = [
     rating: 4.8,
     deliveryTime: '8 min',
     image: require('@/assets/images/shop1.png'),
+    productCategories: ['Grocery', 'Fruits & Veg'],
+    description: 'Your neighbourhood grocery store stocked with fresh produce, pantry staples, and everyday essentials. We source directly from local farms and wholesale markets to bring you the best quality at the lowest prices. Open daily, 6 AM – 11 PM.',
   },
   {
     id: '2',
@@ -215,6 +219,8 @@ export const SHOPS: Shop[] = [
     rating: 4.6,
     deliveryTime: '12 min',
     image: require('@/assets/images/shop2.png'),
+    productCategories: ['Medicines'],
+    description: 'A fully licensed pharmacy staffed by qualified pharmacists. We carry prescription medicines, OTC drugs, health supplements, and personal care products. All items are sourced from certified distributors and stored at regulated temperatures.',
   },
   {
     id: '3',
@@ -223,6 +229,8 @@ export const SHOPS: Shop[] = [
     rating: 4.5,
     deliveryTime: '15 min',
     image: require('@/assets/images/shop3.png'),
+    productCategories: ['Food'],
+    description: 'Hot, freshly prepared meals delivered straight to your door. Our kitchen runs 7 days a week with an ever-changing menu of Indian favourites — biryanis, curries, rolls, and snacks. Every dish is prepared to order with no preservatives.',
   },
   {
     id: '4',
@@ -231,6 +239,8 @@ export const SHOPS: Shop[] = [
     rating: 4.7,
     deliveryTime: '10 min',
     image: require('@/assets/images/shop1.png'),
+    productCategories: ['Dairy'],
+    description: 'Specialists in fresh dairy and farm produce. From pasteurised milk and artisan butter to free-range eggs, everything at DairyBest is collected daily and delivered chilled to preserve peak freshness. Trusted by 10,000+ families.',
   },
 ];
 
