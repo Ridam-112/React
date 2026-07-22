@@ -125,29 +125,25 @@ export default function AuthScreen() {
     setBusy(true);
     setError(null);
     try {
+      // Clerk v3 canonical OAuth pattern
       const { createdSessionId, setActive } = await startSSOFlow({
         strategy: 'oauth_google',
         redirectUrl: AuthSession.makeRedirectUri(),
       });
 
-      if (createdSessionId && setActive) {
-        // Use the navigate callback so router.replace fires only after Clerk
-        // has finished activating the session — avoids the race condition
-        // where the home screen renders before useUser() reflects the new session.
-        await setActive({
+      if (createdSessionId) {
+        setActive!({
           session: createdSessionId,
-          navigate: async ({ session, decorateUrl }) => {
+          navigate: async ({ session, decorateUrl }: { session?: any; decorateUrl: (url: string) => string }) => {
             if (session?.currentTask) {
-              // Session task (e.g. force password reset) — handle separately if needed
               console.log('Session task:', session.currentTask);
               return;
             }
-            router.replace(decorateUrl('/') as any);
+            router.push(decorateUrl('/') as any);
           },
         });
       } else {
-        // createdSessionId is absent when Clerk needs more info (e.g. MFA).
-        // For most Google sign-ins this branch is never hit.
+        // No session created — Clerk may need more info (e.g. missing fields)
         setError('Google sign-in could not be completed. Please try again.');
       }
     } catch (err: any) {
