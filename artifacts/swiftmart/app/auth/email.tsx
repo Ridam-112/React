@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
 } from 'react-native';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
@@ -163,44 +163,42 @@ export default function EmailAuthScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
-  // Clerk v3 API — hooks return { signIn/signUp, errors, fetchStatus }
-  const { signIn, errors: signInErrors, fetchStatus: signInFetchStatus } = useSignIn();
-  const { signUp, errors: signUpErrors, fetchStatus: signUpFetchStatus } = useSignUp();
+  // Correct Clerk SDK destructuring
+  const { signIn, setActive: setSignInActive, isLoaded: signInLoaded } = useSignIn();
+  const { signUp, setActive: setSignUpActive, isLoaded: signUpLoaded } = useSignUp();
 
-  const [mode, setMode]         = useState<Mode>('signin');
-  const [name, setName]         = useState('');
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
+  const [mode, setMode]               = useState<Mode>('signin');
+  const [name, setName]               = useState('');
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [awaitingOtp, setAwaitingOtp] = useState(false);
-
-  // loading derived from fetch status
-  const loading = (mode === 'signin' ? signInFetchStatus : signUpFetchStatus) === 'fetching';
+  const [loading, setLoading]         = useState(false);
 
   // Slide animation for name field (sign-up only)
   const slideAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.spring(slideAnim, { toValue: mode === 'signup' ? 1 : 0, useNativeDriver: false, bounciness: 0, speed: 18 }).start();
+    Animated.spring(slideAnim, {
+      toValue: mode === 'signup' ? 1 : 0,
+      useNativeDriver: false,
+      bounciness: 0,
+      speed: 18,
+    }).start();
   }, [mode]);
 
   const nameHeight  = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 80] });
   const nameOpacity = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
 
-  /** Redirect callback used by both sign-in and sign-up finalize */
-  const navigate = async ({
-    session,
-    decorateUrl,
-  }: {
-    session?: { currentTask?: string } | null;
-    decorateUrl: (url: string) => string;
-  }) => {
-    if (session?.currentTask) {
-      console.log('Session task:', session.currentTask);
-      return;
-    }
-    router.replace(decorateUrl('/') as Href);
-  };
+  /** Extract a human-readable message from any Clerk error shape */
+  function clerkMsg(err: any): string {
+    return (
+      err?.errors?.[0]?.longMessage ??
+      err?.errors?.[0]?.message ??
+      err?.message ??
+      'Something went wrong. Please try again.'
+    );
+  }
 
   const handleSubmit = async () => {
     const errs = validate(mode, name, email, password);
@@ -208,107 +206,97 @@ export default function EmailAuthScreen() {
     setFieldErrors({});
     setSubmitError(null);
 
+    if (mode === 'signin' ? !signInLoaded : !signUpLoaded) {
+      setSubmitError('Auth is not ready yet. Please wait a moment and try again.');
+      return;
+    }
+
+    setLoading(true);
     try {
       if (mode === 'signin') {
-        // Clerk v3: signIn.password() initiates password sign-in
-        const { error } = await signIn.password({ emailAddress: email, password });
-        if (error) {
-          setSubmitError(error.longMessage ?? error.message ?? 'Sign in failed. Please try again.');
-          return;
-        }
+        // ── Sign in with email + password ────────────────────────
+        const result = await signIn!.create({
+          identifier: email,
+          password,
+        });
 
-        if (signIn.status === 'complete') {
-          await signIn.finalize({ navigate });
-        } else if (signIn.status === 'needs_client_trust') {
-          // User needs MFA — send an email code
-          await signIn.mfa.sendEmailCode();
+        if (result.status === 'complete') {
+          await setSignInActive!({ session: result.createdSessionId });
+          router.replace('/');
+        } else if (result.status === 'needs_second_factor') {
+          // MFA required — send email OTP
+          await signIn!.prepareSecondFactor({ strategy: 'email_code' });
           setAwaitingOtp(true);
         } else {
           setSubmitError('Sign in could not be completed. Please try again.');
         }
 
       } else {
-        // Sign-up: Clerk v3 signUp.password() creates the account
+        // ── Create account ────────────────────────────────────────
         const parts = name.trim().split(/\s+/);
-        const { error } = await (signUp as any).password({
+        await signUp!.create({
           emailAddress: email,
           password,
           firstName: parts[0] ?? '',
           lastName: parts.slice(1).join(' ') || undefined,
         });
-        if (error) {
-          setSubmitError(error.longMessage ?? error.message ?? 'Sign up failed. Please try again.');
-          return;
-        }
 
         // Send email verification code
-        await signUp.verifications.sendEmailCode();
+        await signUp!.prepareEmailAddressVerification({ strategy: 'email_code' });
         setAwaitingOtp(true);
       }
     } catch (err: any) {
-      const msg =
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        'Something went wrong. Please try again.';
-      setSubmitError(msg);
+      setSubmitError(clerkMsg(err));
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleVerifyOtp = async (code: string) => {
     setSubmitError(null);
+    setLoading(true);
     try {
       if (mode === 'signup') {
-        // Clerk v3: verifyEmailCode then finalize
-        await signUp.verifications.verifyEmailCode({ code });
-        if (signUp.status === 'complete') {
-          await signUp.finalize({ navigate });
+        // Verify email address for new account
+        const result = await signUp!.attemptEmailAddressVerification({ code });
+        if (result.status === 'complete') {
+          await setSignUpActive!({ session: result.createdSessionId });
+          router.replace('/');
         } else {
           setSubmitError('Verification failed. Please try again.');
         }
       } else {
-        // MFA verify
-        await signIn.mfa.verifyEmailCode({ code });
-        if (signIn.status === 'complete') {
-          await signIn.finalize({ navigate });
+        // MFA second factor
+        const result = await signIn!.attemptSecondFactor({
+          strategy: 'email_code',
+          code,
+        });
+        if (result.status === 'complete') {
+          await setSignInActive!({ session: result.createdSessionId });
+          router.replace('/');
         } else {
           setSubmitError('Verification failed. Please try again.');
         }
       }
     } catch (err: any) {
-      const msg =
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        'Invalid code. Please try again.';
-      setSubmitError(msg);
+      setSubmitError(clerkMsg(err));
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleResendOtp = async () => {
+    setSubmitError(null);
     try {
       if (mode === 'signup') {
-        await signUp.verifications.sendEmailCode();
+        await signUp!.prepareEmailAddressVerification({ strategy: 'email_code' });
       } else {
-        await signIn.mfa.sendEmailCode();
+        await signIn!.prepareSecondFactor({ strategy: 'email_code' });
       }
     } catch (err: any) {
-      const msg =
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        'Could not resend code.';
-      setSubmitError(msg);
+      setSubmitError(clerkMsg(err));
     }
   };
-
-  // Derive field-level errors from Clerk v3 hook errors (for OTP step)
-  const otpError =
-    submitError ??
-    (mode === 'signup'
-      ? (signUpErrors as any)?.fields?.code?.message
-      : (signInErrors as any)?.fields?.code?.message) ??
-    undefined;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -349,7 +337,7 @@ export default function EmailAuthScreen() {
               onVerify={handleVerifyOtp}
               onResend={handleResendOtp}
               loading={loading}
-              error={otpError}
+              error={submitError ?? undefined}
             />
           ) : (
             <>
@@ -446,7 +434,11 @@ export default function EmailAuthScreen() {
 
               {/* CTA */}
               <TouchableOpacity
-                style={[styles.cta, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
+                style={[
+                  styles.cta,
+                  { backgroundColor: colors.primary, borderRadius: colors.radius },
+                  loading && { opacity: 0.7 },
+                ]}
                 onPress={handleSubmit}
                 activeOpacity={0.88}
                 disabled={loading}
@@ -542,7 +534,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', paddingVertical: 16, gap: 8, marginTop: 4,
     ...Platform.select({
-      web: { boxShadow: '0px 6px 20px rgba(255, 193, 7, 0.35)' },
+      web: { boxShadow: '0px 6px 20px rgba(255, 193, 7, 0.35)' } as any,
       default: {
         shadowColor: '#FFC107', shadowOpacity: 0.4,
         shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8,
