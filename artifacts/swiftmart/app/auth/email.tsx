@@ -163,10 +163,8 @@ export default function EmailAuthScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
-  // Clerk v3: hooks return { signIn/signUp, errors, fetchStatus }
-  // `isLoaded` does NOT exist in v3 — use fetchStatus instead
-  const { signIn, fetchStatus: signInFetch } = useSignIn();
-  const { signUp, fetchStatus: signUpFetch } = useSignUp();
+  const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn();
+  const { signUp, setActive: setActiveSignUp, isLoaded: signUpLoaded } = useSignUp();
 
   const [mode, setMode]         = useState<Mode>('signin');
   const [name, setName]         = useState('');
@@ -199,42 +197,34 @@ export default function EmailAuthScreen() {
 
     try {
       if (mode === 'signin') {
-        if (!signIn) return;
+        if (!signIn || !signInLoaded) return;
 
-        // Clerk v3: signIn.password({ emailAddress, password })
-        const { error } = await signIn.password({ emailAddress: email, password });
-        if (error) { setErrors({ submit: clerkMsg(error) }); return; }
-
-        if (signIn.status === 'complete') {
-          await signIn.finalize({
-            navigate: ({ decorateUrl }) => {
-              router.replace(decorateUrl('/') as any);
-            },
-          });
-        } else if (signIn.status === 'needs_client_trust') {
-          const emailFactor = signIn.supportedSecondFactors?.find(
-            (f: any) => f.strategy === 'email_code',
-          );
-          if (emailFactor) await signIn.mfa.sendEmailCode();
+        const result = await signIn.create({ strategy: 'password', identifier: email, password });
+        if (result.status === 'complete') {
+          await setActiveSignIn({ session: result.createdSessionId });
+          router.replace('/');
+        } else if (result.status === 'needs_second_factor') {
+          // MFA — send email OTP as second factor
+          await signIn.prepareSecondFactor({ strategy: 'email_code' });
           setAwaitingOtp(true);
+        } else {
+          setErrors({ submit: 'Sign in could not be completed. Please try again.' });
         }
 
       } else {
         // Sign-up
-        if (!signUp) return;
+        if (!signUp || !signUpLoaded) return;
 
-        // Clerk v3: signUp.password({ emailAddress, password })
-        const { error } = await signUp.password({ emailAddress: email, password });
-        if (error) { setErrors({ submit: clerkMsg(error) }); return; }
-
-        // Set name after password() — update() accepts firstName / lastName
-        try {
-          const parts = name.trim().split(/\s+/);
-          await signUp.update({ firstName: parts[0], lastName: parts.slice(1).join(' ') || undefined });
-        } catch { /* non-fatal */ }
+        const parts = name.trim().split(/\s+/);
+        await signUp.create({
+          emailAddress: email,
+          password,
+          firstName: parts[0],
+          lastName: parts.slice(1).join(' ') || undefined,
+        });
 
         // Send OTP for email verification
-        await signUp.verifications.sendEmailCode();
+        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
         setAwaitingOtp(true);
       }
     } catch (err: any) {
@@ -249,24 +239,16 @@ export default function EmailAuthScreen() {
     setErrors({});
     try {
       if (mode === 'signup' && signUp) {
-        // Clerk v3: signUp.verifications.verifyEmailCode({ code })
-        await signUp.verifications.verifyEmailCode({ code });
-        if (signUp.status === 'complete') {
-          await signUp.finalize({
-            navigate: ({ decorateUrl }) => {
-              router.replace(decorateUrl('/') as any);
-            },
-          });
+        const result = await signUp.attemptEmailAddressVerification({ code });
+        if (result.status === 'complete') {
+          await setActiveSignUp({ session: result.createdSessionId });
+          router.replace('/');
         }
       } else if (mode === 'signin' && signIn) {
-        // Clerk v3: signIn.mfa.verifyEmailCode({ code })
-        await signIn.mfa.verifyEmailCode({ code });
-        if (signIn.status === 'complete') {
-          await signIn.finalize({
-            navigate: ({ decorateUrl }) => {
-              router.replace(decorateUrl('/') as any);
-            },
-          });
+        const result = await signIn.attemptSecondFactor({ strategy: 'email_code', code });
+        if (result.status === 'complete') {
+          await setActiveSignIn({ session: result.createdSessionId });
+          router.replace('/');
         }
       }
     } catch (err: any) {
@@ -279,19 +261,14 @@ export default function EmailAuthScreen() {
   const handleResendOtp = async () => {
     try {
       if (mode === 'signup' && signUp) {
-        await signUp.verifications.sendEmailCode();
+        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       } else if (mode === 'signin' && signIn) {
-        await signIn.mfa.sendEmailCode();
+        await signIn.prepareSecondFactor({ strategy: 'email_code' });
       }
     } catch (err: any) {
       setErrors({ otp: clerkMsg(err) });
     }
   };
-
-  // True while Clerk is actively fetching
-  const isFetching = mode === 'signin'
-    ? signInFetch === 'fetching'
-    : signUpFetch === 'fetching';
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>

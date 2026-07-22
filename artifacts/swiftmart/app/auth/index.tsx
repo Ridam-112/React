@@ -130,13 +130,9 @@ export default function AuthScreen() {
         redirectUrl: AuthSession.makeRedirectUri(),
       });
 
-      if (createdSessionId) {
-        await setActive!({
-          session: createdSessionId,
-          navigate: async ({ decorateUrl }) => {
-            router.replace(decorateUrl('/') as any);
-          },
-        });
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        router.replace('/');
       }
     } catch (err: any) {
       console.error('Google SSO error:', JSON.stringify(err, null, 2));
