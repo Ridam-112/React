@@ -11,7 +11,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Stack, router } from 'expo-router';
+import { Stack, router, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { CartProvider } from '@/context/CartContext';
 import { NotificationProvider } from '@/context/NotificationContext';
@@ -32,11 +32,13 @@ function AddressWrapper({ children }: { children: ReactNode }) {
 /** Redirects a signed-in user to onboarding if their profile is incomplete. */
 function OnboardingGuard() {
   const { user, isLoading } = useAuth();
+  const pathname = usePathname();
   useEffect(() => {
-    if (!isLoading && user && needsOnboarding(user)) {
+    // Don't redirect while already on onboarding — prevents a loop mid-submission.
+    if (!isLoading && user && needsOnboarding(user) && pathname !== '/onboarding') {
       router.replace('/onboarding');
     }
-  }, [user, isLoading]);
+  }, [user, isLoading, pathname]);
   return null;
 }
 

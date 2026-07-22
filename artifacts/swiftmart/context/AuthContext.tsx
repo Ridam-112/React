@@ -24,7 +24,7 @@ export type AuthUser = {
   phone?: string;
   address?: string;
   avatar?: string;
-  provider: 'email' | 'google';
+  provider: 'email' | 'google' | 'truecaller';
 };
 
 type StoredUser = AuthUser & { password: string };

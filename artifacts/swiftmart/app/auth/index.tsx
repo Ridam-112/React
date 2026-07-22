@@ -15,9 +15,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import * as WebBrowser from 'expo-web-browser';
-
-WebBrowser.maybeCompleteAuthSession();
+import { Alert } from 'react-native';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -95,7 +93,6 @@ function GoogleButton({ onPress, loading, colors: c }: { onPress: () => void; lo
 export default function AuthScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { startSSOFlow } = useSSO();
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,38 +115,13 @@ export default function AuthScreen() {
     return () => { WebBrowser.coolDownAsync(); };
   }, []);
 
-  const handleGoogle = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      // Clerk v3 canonical OAuth pattern
-      const { createdSessionId, setActive } = await startSSOFlow({
-        strategy: 'oauth_google',
-        redirectUrl: AuthSession.makeRedirectUri(),
-      });
-
-      if (createdSessionId) {
-        setActive!({
-          session: createdSessionId,
-          navigate: async ({ session, decorateUrl }: { session?: any; decorateUrl: (url: string) => string }) => {
-            if (session?.currentTask) {
-              console.log('Session task:', session.currentTask);
-              return;
-            }
-            router.push(decorateUrl('/') as any);
-          },
-        });
-      } else {
-        // No session created — Clerk may need more info (e.g. missing fields)
-        setError('Google sign-in could not be completed. Please try again.');
-      }
-    } catch (err: any) {
-      console.error('Google SSO error:', JSON.stringify(err, null, 2));
-      setError('Google sign-in failed. Please try again.');
-    } finally {
-      setBusy(false);
-    }
-  }, [startSSOFlow]);
+  const handleGoogle = useCallback(() => {
+    Alert.alert(
+      'Coming Soon',
+      'Google sign-in will be available in a future update. Please use your email to continue.',
+      [{ text: 'OK' }],
+    );
+  }, []);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
