@@ -13,6 +13,8 @@ import {
 } from '@expo-google-fonts/inter';
 import { Stack, router, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { ClerkProvider, useUser } from '@clerk/expo';
+import { tokenCache } from '@clerk/expo/token-cache';
 import { CartProvider } from '@/context/CartContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { AuthProvider, useAuth, needsOnboarding } from '@/context/AuthContext';
@@ -20,9 +22,38 @@ import { AddressProvider } from '@/context/AddressContext';
 import AnimatedSplash from '@/components/AnimatedSplash';
 import { ReactNode } from 'react';
 
+const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+/**
+ * Listens for a Clerk Google session and syncs the user into the local
+ * AsyncStorage AuthContext so the rest of the app stays consistent.
+ * Must live inside both <ClerkProvider> and <AuthProvider>.
+ */
+function ClerkGoogleBridge() {
+  const { user: clerkUser, isLoaded } = useUser();
+  const { signInWithGoogle, user: localUser } = useAuth();
+
+  useEffect(() => {
+    if (!isLoaded || !clerkUser) return;
+    const isGoogle = clerkUser.externalAccounts?.some(
+      (a) => a.provider === 'google',
+    );
+    if (isGoogle && !localUser) {
+      const email = clerkUser.primaryEmailAddress?.emailAddress ?? '';
+      const name =
+        clerkUser.fullName ||
+        [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') ||
+        email.split('@')[0];
+      signInWithGoogle({ id: clerkUser.id, name, email });
+    }
+  }, [isLoaded, clerkUser]);
+
+  return null;
+}
 
 /** Bridges AuthContext → AddressProvider so userId is always in sync. */
 function AddressWrapper({ children }: { children: ReactNode }) {
@@ -120,20 +151,23 @@ export default function RootLayout() {
   }, [fontsReady]);
 
   return (
-    <SafeAreaProvider>
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <AddressWrapper>
-              <CartProvider>
-                <NotificationProvider>
-                  <InnerApp fontsReady={fontsReady} />
-                </NotificationProvider>
-              </CartProvider>
-            </AddressWrapper>
-          </AuthProvider>
-        </QueryClientProvider>
-      </ErrorBoundary>
-    </SafeAreaProvider>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
+      <SafeAreaProvider>
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <ClerkGoogleBridge />
+              <AddressWrapper>
+                <CartProvider>
+                  <NotificationProvider>
+                    <InnerApp fontsReady={fontsReady} />
+                  </NotificationProvider>
+                </CartProvider>
+              </AddressWrapper>
+            </AuthProvider>
+          </QueryClientProvider>
+        </ErrorBoundary>
+      </SafeAreaProvider>
+    </ClerkProvider>
   );
 }

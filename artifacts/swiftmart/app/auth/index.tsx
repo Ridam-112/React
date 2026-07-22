@@ -15,7 +15,11 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import { Alert } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import { useSSO } from '@clerk/expo';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -115,13 +119,34 @@ export default function AuthScreen() {
     return () => { WebBrowser.coolDownAsync(); };
   }, []);
 
-  const handleGoogle = useCallback(() => {
-    Alert.alert(
-      'Coming Soon',
-      'Google sign-in will be available in a future update. Please use your email to continue.',
-      [{ text: 'OK' }],
-    );
-  }, []);
+  const { startSSOFlow } = useSSO();
+
+  const handleGoogle = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: 'oauth_google',
+        redirectUrl: AuthSession.makeRedirectUri(),
+      });
+      if (createdSessionId) {
+        await setActive!({
+          session: createdSessionId,
+          navigate: async ({ session, decorateUrl }) => {
+            if (session?.currentTask) return;
+            router.replace(decorateUrl('/') as any);
+          },
+        });
+      } else {
+        setError('Google sign-in could not be completed. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('Google SSO error:', JSON.stringify(err, null, 2));
+      setError('Google sign-in failed. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }, [startSSOFlow]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>

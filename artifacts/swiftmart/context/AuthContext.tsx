@@ -38,6 +38,7 @@ type AuthContextType = {
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
+  signInWithGoogle: (googleData: { id: string; name: string; email: string }) => Promise<void>;
   signOut: () => Promise<void>;
   completeProfile: (updates: { name: string; phone?: string; address: string }) => Promise<void>;
 };
@@ -113,6 +114,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(toPublic(newUser));
   };
 
+  const signInWithGoogle = async (googleData: { id: string; name: string; email: string }) => {
+    const users = await loadUsers();
+    let found = users.find((u) => u.email.toLowerCase() === googleData.email.toLowerCase());
+    if (!found) {
+      const newUser: StoredUser = {
+        id: googleData.id,
+        name: googleData.name,
+        email: googleData.email,
+        password: '',
+        provider: 'google',
+      };
+      users.push(newUser);
+      await saveUsers(users);
+      found = newUser;
+    } else if (found.provider !== 'google') {
+      // Upgrade existing email account to also accept Google
+      found = { ...found, provider: 'google' };
+      const idx = users.findIndex((u) => u.id === found!.id);
+      users[idx] = found;
+      await saveUsers(users);
+    }
+    await AsyncStorage.setItem(SESSION_KEY, found.id);
+    setUser(toPublic(found));
+  };
+
   const signOut = async () => {
     await AsyncStorage.removeItem(SESSION_KEY);
     setUser(null);
@@ -133,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut, completeProfile }}>
+    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signInWithGoogle, signOut, completeProfile }}>
       {children}
     </AuthContext.Provider>
   );
