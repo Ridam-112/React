@@ -25,6 +25,7 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
 /** Bridges AuthContext → AddressProvider so userId is always in sync. */
 function AddressWrapper({ children }: { children: ReactNode }) {
@@ -95,7 +96,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache} proxyUrl={proxyUrl}>
           <ClerkLoaded>
             <QueryClientProvider client={queryClient}>
               <AuthProvider>

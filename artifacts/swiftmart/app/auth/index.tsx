@@ -131,9 +131,12 @@ export default function AuthScreen() {
       });
 
       if (createdSessionId) {
-        await setActive!({ session: createdSessionId });
-        // OnboardingGuard in _layout.tsx will redirect to /onboarding if profile is incomplete
-        router.replace('/');
+        await setActive!({
+          session: createdSessionId,
+          navigate: async ({ decorateUrl }) => {
+            router.replace(decorateUrl('/') as any);
+          },
+        });
       }
     } catch (err: any) {
       console.error('Google SSO error:', JSON.stringify(err, null, 2));

@@ -38,16 +38,8 @@ function validate(mode: Mode, name: string, email: string, password: string) {
 
 /* ─── Animated input field ───────────────────────────────────────── */
 function InputField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  secureEntry,
-  error,
-  keyboardType,
-  autoCapitalize,
-  colors,
-  editable = true,
+  label, value, onChangeText, placeholder,
+  secureEntry, error, keyboardType, autoCapitalize, colors,
 }: {
   label: string;
   value: string;
@@ -58,7 +50,6 @@ function InputField({
   keyboardType?: 'email-address' | 'numeric' | 'default';
   autoCapitalize?: 'none' | 'words';
   colors: ReturnType<typeof useColors>;
-  editable?: boolean;
 }) {
   const [secure, setSecure] = useState(secureEntry ?? false);
   const [focused, setFocused] = useState(false);
@@ -95,7 +86,6 @@ function InputField({
           autoCorrect={false}
           onFocus={onFocus}
           onBlur={onBlur}
-          editable={editable}
           style={[styles.input, { color: colors.foreground, fontFamily: 'Inter_400Regular' }]}
         />
         {secureEntry && (
@@ -113,11 +103,7 @@ function InputField({
 
 /* ─── OTP Verification step ──────────────────────────────────────── */
 function VerifyStep({
-  colors,
-  onVerify,
-  onResend,
-  loading,
-  error,
+  colors, onVerify, onResend, loading, error,
 }: {
   colors: ReturnType<typeof useColors>;
   onVerify: (code: string) => void;
@@ -135,9 +121,8 @@ function VerifyStep({
         Check your email
       </Text>
       <Text style={[styles.verifySub, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-        We sent a 6-digit code to your email address. Enter it below to verify your account.
+        We sent a 6-digit code to your email. Enter it below to verify your account.
       </Text>
-
       <InputField
         label="Verification code"
         value={code}
@@ -147,7 +132,6 @@ function VerifyStep({
         error={error}
         colors={colors}
       />
-
       <TouchableOpacity
         style={[styles.cta, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
         onPress={() => onVerify(code)}
@@ -165,7 +149,6 @@ function VerifyStep({
           </>
         )}
       </TouchableOpacity>
-
       <TouchableOpacity style={styles.resendBtn} onPress={onResend} activeOpacity={0.7}>
         <Text style={[styles.resendText, { color: colors.primary, fontFamily: 'Inter_500Medium' }]}>
           Resend code
@@ -179,10 +162,13 @@ function VerifyStep({
 export default function EmailAuthScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { signIn, isLoaded: signInLoaded } = useSignIn();
-  const { signUp, isLoaded: signUpLoaded } = useSignUp();
 
-  const [mode, setMode] = useState<Mode>('signin');
+  // Clerk v3: hooks return { signIn/signUp, errors, fetchStatus }
+  // `isLoaded` does NOT exist in v3 — use fetchStatus instead
+  const { signIn, fetchStatus: signInFetch } = useSignIn();
+  const { signUp, fetchStatus: signUpFetch } = useSignUp();
+
+  const [mode, setMode]         = useState<Mode>('signin');
   const [name, setName]         = useState('');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -190,19 +176,19 @@ export default function EmailAuthScreen() {
   const [loading, setLoading]   = useState(false);
   const [awaitingOtp, setAwaitingOtp] = useState(false);
 
-  // Slide animation when toggling between sign-in / sign-up
+  // Slide animation for name field (sign-up only)
   const slideAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.spring(slideAnim, { toValue: mode === 'signup' ? 1 : 0, useNativeDriver: false, bounciness: 0, speed: 18 }).start();
   }, [mode]);
 
-  const nameHeight = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 80] });
+  const nameHeight  = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 80] });
   const nameOpacity = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
 
-  /** Extract a human-readable message from Clerk errors */
-  const clerkErrorMessage = (err: any): string => {
-    const firstErr = err?.errors?.[0];
-    return firstErr?.longMessage ?? firstErr?.message ?? 'Something went wrong. Please try again.';
+  /** Extract a human-readable message from a Clerk error */
+  const clerkMsg = (err: any): string => {
+    const first = err?.errors?.[0];
+    return first?.longMessage ?? first?.message ?? 'Something went wrong. Please try again.';
   };
 
   const handleSubmit = async () => {
@@ -214,11 +200,11 @@ export default function EmailAuthScreen() {
     try {
       if (mode === 'signin') {
         if (!signIn) return;
+
+        // Clerk v3: signIn.password({ emailAddress, password })
         const { error } = await signIn.password({ emailAddress: email, password });
-        if (error) {
-          setErrors({ submit: clerkErrorMessage(error) });
-          return;
-        }
+        if (error) { setErrors({ submit: clerkMsg(error) }); return; }
+
         if (signIn.status === 'complete') {
           await signIn.finalize({
             navigate: ({ decorateUrl }) => {
@@ -226,36 +212,33 @@ export default function EmailAuthScreen() {
             },
           });
         } else if (signIn.status === 'needs_client_trust') {
-          // MFA / email code challenge
           const emailFactor = signIn.supportedSecondFactors?.find(
             (f: any) => f.strategy === 'email_code',
           );
           if (emailFactor) await signIn.mfa.sendEmailCode();
           setAwaitingOtp(true);
         }
+
       } else {
         // Sign-up
         if (!signUp) return;
-        // Set name fields before calling password()
-        const firstName = name.trim().split(/\s+/)[0];
-        const lastName = name.trim().split(/\s+/).slice(1).join(' ') || undefined;
 
+        // Clerk v3: signUp.password({ emailAddress, password })
         const { error } = await signUp.password({ emailAddress: email, password });
-        if (error) {
-          setErrors({ submit: clerkErrorMessage(error) });
-          return;
-        }
-        // Update name after password() since it doesn't accept firstName directly
+        if (error) { setErrors({ submit: clerkMsg(error) }); return; }
+
+        // Set name after password() — update() accepts firstName / lastName
         try {
-          await signUp.update({ firstName, lastName });
+          const parts = name.trim().split(/\s+/);
+          await signUp.update({ firstName: parts[0], lastName: parts.slice(1).join(' ') || undefined });
         } catch { /* non-fatal */ }
 
-        // Always send email verification
+        // Send OTP for email verification
         await signUp.verifications.sendEmailCode();
         setAwaitingOtp(true);
       }
     } catch (err: any) {
-      setErrors({ submit: clerkErrorMessage(err) });
+      setErrors({ submit: clerkMsg(err) });
     } finally {
       setLoading(false);
     }
@@ -266,6 +249,7 @@ export default function EmailAuthScreen() {
     setErrors({});
     try {
       if (mode === 'signup' && signUp) {
+        // Clerk v3: signUp.verifications.verifyEmailCode({ code })
         await signUp.verifications.verifyEmailCode({ code });
         if (signUp.status === 'complete') {
           await signUp.finalize({
@@ -275,6 +259,7 @@ export default function EmailAuthScreen() {
           });
         }
       } else if (mode === 'signin' && signIn) {
+        // Clerk v3: signIn.mfa.verifyEmailCode({ code })
         await signIn.mfa.verifyEmailCode({ code });
         if (signIn.status === 'complete') {
           await signIn.finalize({
@@ -285,7 +270,7 @@ export default function EmailAuthScreen() {
         }
       }
     } catch (err: any) {
-      setErrors({ otp: clerkErrorMessage(err) });
+      setErrors({ otp: clerkMsg(err) });
     } finally {
       setLoading(false);
     }
@@ -299,11 +284,14 @@ export default function EmailAuthScreen() {
         await signIn.mfa.sendEmailCode();
       }
     } catch (err: any) {
-      setErrors({ otp: clerkErrorMessage(err) });
+      setErrors({ otp: clerkMsg(err) });
     }
   };
 
-  const isReady = mode === 'signin' ? signInLoaded : signUpLoaded;
+  // True while Clerk is actively fetching
+  const isFetching = mode === 'signin'
+    ? signInFetch === 'fetching'
+    : signUpFetch === 'fetching';
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -337,7 +325,7 @@ export default function EmailAuthScreen() {
           contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── OTP step ───────────────────────────────────────────── */}
+          {/* ── OTP step ─────────────────────────────────────────── */}
           {awaitingOtp ? (
             <VerifyStep
               colors={colors}
@@ -385,7 +373,7 @@ export default function EmailAuthScreen() {
                 </Text>
               </View>
 
-              {/* Name field (sign-up only) */}
+              {/* Name field — sign-up only, animated in */}
               <Animated.View style={{ height: nameHeight, opacity: nameOpacity, overflow: 'hidden' }}>
                 <InputField
                   label="Full Name"
@@ -398,7 +386,7 @@ export default function EmailAuthScreen() {
                 />
               </Animated.View>
 
-              {/* Email field */}
+              {/* Email */}
               <InputField
                 label="Email Address"
                 value={email}
@@ -409,7 +397,7 @@ export default function EmailAuthScreen() {
                 colors={colors}
               />
 
-              {/* Password field */}
+              {/* Password */}
               <InputField
                 label="Password"
                 value={password}
@@ -439,14 +427,14 @@ export default function EmailAuthScreen() {
                 </View>
               )}
 
-              {/* CTA button */}
+              {/* CTA */}
               <TouchableOpacity
-                style={[styles.cta, { backgroundColor: colors.primary, borderRadius: colors.radius, opacity: isReady ? 1 : 0.6 }]}
+                style={[styles.cta, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
                 onPress={handleSubmit}
                 activeOpacity={0.88}
-                disabled={loading || !isReady}
+                disabled={loading || isFetching}
               >
-                {loading ? (
+                {loading || isFetching ? (
                   <ActivityIndicator color={colors.primaryForeground} />
                 ) : (
                   <>
@@ -478,7 +466,7 @@ export default function EmailAuthScreen() {
                 </Text>
               </View>
 
-              {/* Captcha anchor required by Clerk for sign-up bot protection */}
+              {/* Required by Clerk for bot protection on sign-up */}
               <View nativeID="clerk-captcha" />
             </>
           )}
@@ -491,7 +479,6 @@ export default function EmailAuthScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
 
-  /* Header */
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -500,103 +487,62 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 36, height: 36,
+    borderRadius: 10, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
   },
   headerTitle: { fontSize: 17 },
 
-  /* Content */
   scroll: { paddingHorizontal: 24, paddingTop: 8, gap: 16 },
 
-  /* Mode tabs */
-  tabs: {
-    flexDirection: 'row',
-    padding: 4,
-    borderWidth: 1,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
+  tabs: { flexDirection: 'row', padding: 4, borderWidth: 1 },
+  tab: { flex: 1, paddingVertical: 10, alignItems: 'center' },
   tabText: { fontSize: 14 },
 
-  /* Welcome */
   welcome: { gap: 4 },
   welcomeTitle: { fontSize: 24 },
   welcomeSub: { fontSize: 14, lineHeight: 20 },
 
-  /* Fields */
   fieldWrap: { gap: 6 },
   label: { fontSize: 13 },
   inputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    gap: 10,
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 13, gap: 10,
   },
   input: { flex: 1, fontSize: 15, padding: 0 },
   errorText: { fontSize: 12 },
 
-  /* Forgot */
   forgotRow: { alignItems: 'flex-end' },
   forgotText: { fontSize: 13 },
 
-  /* Submit error */
   submitError: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    borderWidth: 1,
+    flexDirection: 'row', alignItems: 'center',
+    gap: 8, padding: 12, borderWidth: 1,
   },
   submitErrorText: { fontSize: 13, flex: 1 },
 
-  /* CTA */
   cta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-    marginTop: 4,
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', paddingVertical: 16, gap: 8, marginTop: 4,
     ...Platform.select({
       web: { boxShadow: '0px 6px 20px rgba(255, 193, 7, 0.35)' },
       default: {
-        shadowColor: '#FFC107',
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 8,
+        shadowColor: '#FFC107', shadowOpacity: 0.4,
+        shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8,
       },
     }),
   },
   ctaText: { fontSize: 16 },
 
-  /* Switch */
   switchRow: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
   switchText: { fontSize: 14 },
   switchLink: { fontSize: 14 },
 
-  /* Secure */
   secureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   secureText: { fontSize: 11.5 },
 
-  /* OTP / Verify step */
   verifyWrap: { gap: 16, alignItems: 'center', paddingTop: 16 },
-  verifyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  verifyIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
   verifyTitle: { fontSize: 22, textAlign: 'center' },
   verifySub: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
   resendBtn: { paddingVertical: 8 },
