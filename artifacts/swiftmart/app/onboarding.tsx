@@ -139,13 +139,16 @@ export default function OnboardingScreen() {
 
   const isTruecaller = user?.provider === 'truecaller';
 
-  // If for some reason this screen is shown to a user whose profile is already
-  // complete (e.g. navigating back), redirect them to home immediately.
+  // Only redirect on initial mount — NOT reactively on every user change.
+  // Reacting to user changes would navigate away mid-submission as soon as
+  // completeProfile() sets user.address, before addAddress() has finished saving.
+  const submitting = useRef(false);
   useEffect(() => {
     if (user && !needsOnboarding(user)) {
       router.replace('/');
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validate = () => {
     const errs: Record<string, string> = {};
