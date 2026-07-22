@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -17,6 +17,7 @@ import { CartProvider } from '@/context/CartContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { AuthProvider, useAuth, needsOnboarding } from '@/context/AuthContext';
 import { AddressProvider } from '@/context/AddressContext';
+import AnimatedSplash from '@/components/AnimatedSplash';
 import { ReactNode } from 'react';
 
 SplashScreen.preventAutoHideAsync();
@@ -75,6 +76,31 @@ function RootLayoutNav() {
   );
 }
 
+/**
+ * Rendered inside AuthProvider so it can read auth loading state.
+ * Shows the animated splash on top until both fonts and auth are ready,
+ * then fades it out to reveal the app.
+ */
+function InnerApp({ fontsReady }: { fontsReady: boolean }) {
+  const { isLoading: authLoading } = useAuth();
+  const [splashDone, setSplashDone] = useState(false);
+  const appReady = fontsReady && !authLoading;
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardProvider>
+        {/* App renders underneath — navigation is ready the moment splash exits */}
+        {fontsReady && <RootLayoutNav />}
+
+        {/* Animated splash sits on top until appReady, then fades out */}
+        {!splashDone && (
+          <AnimatedSplash ready={appReady} onDone={() => setSplashDone(true)} />
+        )}
+      </KeyboardProvider>
+    </GestureHandlerRootView>
+  );
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -83,13 +109,15 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  const fontsReady = fontsLoaded || !!fontError;
+
+  // Hide the native OS splash as soon as fonts are done —
+  // our custom AnimatedSplash takes over from this point.
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if (fontsReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
-
-  if (!fontsLoaded && !fontError) return null;
+  }, [fontsReady]);
 
   return (
     <SafeAreaProvider>
@@ -99,11 +127,7 @@ export default function RootLayout() {
             <AddressWrapper>
               <CartProvider>
                 <NotificationProvider>
-                  <GestureHandlerRootView style={{ flex: 1 }}>
-                    <KeyboardProvider>
-                      <RootLayoutNav />
-                    </KeyboardProvider>
-                  </GestureHandlerRootView>
+                  <InnerApp fontsReady={fontsReady} />
                 </NotificationProvider>
               </CartProvider>
             </AddressWrapper>
