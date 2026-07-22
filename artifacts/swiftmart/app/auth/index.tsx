@@ -15,11 +15,8 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import { useSSO } from '@clerk/expo';
 import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
 
-// Required: completes any pending OAuth session on mount
 WebBrowser.maybeCompleteAuthSession();
 
 const { width: W, height: H } = Dimensions.get('window');

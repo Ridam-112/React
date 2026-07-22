@@ -16,7 +16,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import { useSignIn, useSignUp } from '@clerk/expo';
+import { useAuth } from '@/context/AuthContext';
 
 type Mode = 'signin' | 'signup';
 
@@ -101,71 +101,11 @@ function InputField({
   );
 }
 
-/* ─── OTP Verification step ──────────────────────────────────────── */
-function VerifyStep({
-  colors, onVerify, onResend, loading, error,
-}: {
-  colors: ReturnType<typeof useColors>;
-  onVerify: (code: string) => void;
-  onResend: () => void;
-  loading: boolean;
-  error?: string;
-}) {
-  const [code, setCode] = useState('');
-  return (
-    <View style={styles.verifyWrap}>
-      <View style={[styles.verifyIcon, { backgroundColor: colors.primary + '15' }]}>
-        <Feather name="mail" size={28} color={colors.primary} />
-      </View>
-      <Text style={[styles.verifyTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
-        Check your email
-      </Text>
-      <Text style={[styles.verifySub, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-        We sent a 6-digit code to your email. Enter it below to verify your account.
-      </Text>
-      <InputField
-        label="Verification code"
-        value={code}
-        onChangeText={setCode}
-        placeholder="123456"
-        keyboardType="numeric"
-        error={error}
-        colors={colors}
-      />
-      <TouchableOpacity
-        style={[styles.cta, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
-        onPress={() => onVerify(code)}
-        activeOpacity={0.88}
-        disabled={loading || code.length < 6}
-      >
-        {loading ? (
-          <ActivityIndicator color={colors.primaryForeground} />
-        ) : (
-          <>
-            <Text style={[styles.ctaText, { color: colors.primaryForeground, fontFamily: 'Inter_700Bold' }]}>
-              Verify Email
-            </Text>
-            <Feather name="check" size={18} color={colors.primaryForeground} />
-          </>
-        )}
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.resendBtn} onPress={onResend} activeOpacity={0.7}>
-        <Text style={[styles.resendText, { color: colors.primary, fontFamily: 'Inter_500Medium' }]}>
-          Resend code
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
 /* ─── Screen ─────────────────────────────────────────────────────── */
 export default function EmailAuthScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-
-  // Correct Clerk SDK destructuring
-  const { signIn, setActive: setSignInActive, isLoaded: signInLoaded } = useSignIn();
-  const { signUp, setActive: setSignUpActive, isLoaded: signUpLoaded } = useSignUp();
+  const { signIn, signUp } = useAuth();
 
   const [mode, setMode]               = useState<Mode>('signin');
   const [name, setName]               = useState('');
@@ -173,7 +113,6 @@ export default function EmailAuthScreen() {
   const [password, setPassword]       = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [awaitingOtp, setAwaitingOtp] = useState(false);
   const [loading, setLoading]         = useState(false);
 
   // Slide animation for name field (sign-up only)
@@ -190,111 +129,25 @@ export default function EmailAuthScreen() {
   const nameHeight  = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 80] });
   const nameOpacity = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
 
-  /** Extract a human-readable message from any Clerk error shape */
-  function clerkMsg(err: any): string {
-    return (
-      err?.errors?.[0]?.longMessage ??
-      err?.errors?.[0]?.message ??
-      err?.message ??
-      'Something went wrong. Please try again.'
-    );
-  }
-
   const handleSubmit = async () => {
     const errs = validate(mode, name, email, password);
     if (Object.keys(errs).length) { setFieldErrors(errs); return; }
     setFieldErrors({});
     setSubmitError(null);
-
-    if (mode === 'signin' ? !signInLoaded : !signUpLoaded) {
-      setSubmitError('Auth is not ready yet. Please wait a moment and try again.');
-      return;
-    }
-
     setLoading(true);
+
     try {
       if (mode === 'signin') {
-        // ── Sign in with email + password ────────────────────────
-        const result = await signIn!.create({
-          identifier: email,
-          password,
-        });
-
-        if (result.status === 'complete') {
-          await setSignInActive!({ session: result.createdSessionId });
-          router.replace('/');
-        } else if (result.status === 'needs_second_factor') {
-          // MFA required — send email OTP
-          await signIn!.prepareSecondFactor({ strategy: 'email_code' });
-          setAwaitingOtp(true);
-        } else {
-          setSubmitError('Sign in could not be completed. Please try again.');
-        }
-
+        await signIn(email.trim(), password);
       } else {
-        // ── Create account ────────────────────────────────────────
-        const parts = name.trim().split(/\s+/);
-        await signUp!.create({
-          emailAddress: email,
-          password,
-          firstName: parts[0] ?? '',
-          lastName: parts.slice(1).join(' ') || undefined,
-        });
-
-        // Send email verification code
-        await signUp!.prepareEmailAddressVerification({ strategy: 'email_code' });
-        setAwaitingOtp(true);
+        await signUp(name.trim(), email.trim(), password);
       }
+      // On success AuthProvider sets user → navigate home
+      router.replace('/');
     } catch (err: any) {
-      setSubmitError(clerkMsg(err));
+      setSubmitError(err?.message ?? 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (code: string) => {
-    setSubmitError(null);
-    setLoading(true);
-    try {
-      if (mode === 'signup') {
-        // Verify email address for new account
-        const result = await signUp!.attemptEmailAddressVerification({ code });
-        if (result.status === 'complete') {
-          await setSignUpActive!({ session: result.createdSessionId });
-          router.replace('/');
-        } else {
-          setSubmitError('Verification failed. Please try again.');
-        }
-      } else {
-        // MFA second factor
-        const result = await signIn!.attemptSecondFactor({
-          strategy: 'email_code',
-          code,
-        });
-        if (result.status === 'complete') {
-          await setSignInActive!({ session: result.createdSessionId });
-          router.replace('/');
-        } else {
-          setSubmitError('Verification failed. Please try again.');
-        }
-      }
-    } catch (err: any) {
-      setSubmitError(clerkMsg(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    setSubmitError(null);
-    try {
-      if (mode === 'signup') {
-        await signUp!.prepareEmailAddressVerification({ strategy: 'email_code' });
-      } else {
-        await signIn!.prepareSecondFactor({ strategy: 'email_code' });
-      }
-    } catch (err: any) {
-      setSubmitError(clerkMsg(err));
     }
   };
 
@@ -305,17 +158,14 @@ export default function EmailAuthScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity
-          onPress={() => {
-            if (awaitingOtp) { setAwaitingOtp(false); setSubmitError(null); return; }
-            router.back();
-          }}
+          onPress={() => router.back()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
           <Feather name="arrow-left" size={19} color={colors.foreground} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]}>
-          {awaitingOtp ? 'Verify Email' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+          {mode === 'signin' ? 'Sign In' : 'Create Account'}
         </Text>
         <View style={{ width: 36 }} />
       </View>
@@ -330,155 +180,130 @@ export default function EmailAuthScreen() {
           contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── OTP step ─────────────────────────────────────────── */}
-          {awaitingOtp ? (
-            <VerifyStep
-              colors={colors}
-              onVerify={handleVerifyOtp}
-              onResend={handleResendOtp}
-              loading={loading}
-              error={submitError ?? undefined}
-            />
-          ) : (
-            <>
-              {/* Mode toggle tabs */}
-              <View style={[styles.tabs, { backgroundColor: colors.muted, borderColor: colors.border, borderRadius: colors.radius }]}>
-                {(['signin', 'signup'] as Mode[]).map((m) => (
-                  <TouchableOpacity
-                    key={m}
-                    onPress={() => { setMode(m); setFieldErrors({}); setSubmitError(null); }}
-                    style={[
-                      styles.tab,
-                      m === mode && { backgroundColor: colors.primary, borderRadius: colors.radius - 2 },
-                    ]}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[
-                      styles.tabText,
-                      {
-                        color: m === mode ? colors.primaryForeground : colors.mutedForeground,
-                        fontFamily: m === mode ? 'Inter_600SemiBold' : 'Inter_400Regular',
-                      },
-                    ]}>
-                      {m === 'signin' ? 'Sign In' : 'Create Account'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Welcome text */}
-              <View style={styles.welcome}>
-                <Text style={[styles.welcomeTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
-                  {mode === 'signin' ? 'Welcome back 👋' : 'Join SwiftMart 🚀'}
-                </Text>
-                <Text style={[styles.welcomeSub, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-                  {mode === 'signin'
-                    ? 'Enter your details to access your account'
-                    : 'Create an account to start ordering'}
-                </Text>
-              </View>
-
-              {/* Name field — sign-up only, animated in */}
-              <Animated.View style={{ height: nameHeight, opacity: nameOpacity, overflow: 'hidden' }}>
-                <InputField
-                  label="Full Name"
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Ridam Kumar"
-                  autoCapitalize="words"
-                  error={fieldErrors.name}
-                  colors={colors}
-                />
-              </Animated.View>
-
-              {/* Email */}
-              <InputField
-                label="Email Address"
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@example.com"
-                keyboardType="email-address"
-                error={fieldErrors.email}
-                colors={colors}
-              />
-
-              {/* Password */}
-              <InputField
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Min. 8 characters"
-                secureEntry
-                error={fieldErrors.password}
-                colors={colors}
-              />
-
-              {/* Forgot password */}
-              {mode === 'signin' && (
-                <TouchableOpacity style={styles.forgotRow} activeOpacity={0.7}>
-                  <Text style={[styles.forgotText, { color: colors.primary, fontFamily: 'Inter_500Medium' }]}>
-                    Forgot password?
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {/* Submit error */}
-              {submitError && (
-                <View style={[styles.submitError, { backgroundColor: '#EF444418', borderColor: '#EF4444', borderRadius: colors.radius }]}>
-                  <Feather name="alert-circle" size={14} color="#EF4444" />
-                  <Text style={[styles.submitErrorText, { color: '#EF4444', fontFamily: 'Inter_400Regular' }]}>
-                    {submitError}
-                  </Text>
-                </View>
-              )}
-
-              {/* CTA */}
+          {/* Mode toggle tabs */}
+          <View style={[styles.tabs, { backgroundColor: colors.muted, borderColor: colors.border, borderRadius: colors.radius }]}>
+            {(['signin', 'signup'] as Mode[]).map((m) => (
               <TouchableOpacity
+                key={m}
+                onPress={() => { setMode(m); setFieldErrors({}); setSubmitError(null); }}
                 style={[
-                  styles.cta,
-                  { backgroundColor: colors.primary, borderRadius: colors.radius },
-                  loading && { opacity: 0.7 },
+                  styles.tab,
+                  m === mode && { backgroundColor: colors.primary, borderRadius: colors.radius - 2 },
                 ]}
-                onPress={handleSubmit}
-                activeOpacity={0.88}
-                disabled={loading}
+                activeOpacity={0.8}
               >
-                {loading ? (
-                  <ActivityIndicator color={colors.primaryForeground} />
-                ) : (
-                  <>
-                    <Text style={[styles.ctaText, { color: colors.primaryForeground, fontFamily: 'Inter_700Bold' }]}>
-                      {mode === 'signin' ? 'Sign In' : 'Create Account'}
-                    </Text>
-                    <Feather name="arrow-right" size={18} color={colors.primaryForeground} />
-                  </>
-                )}
+                <Text style={[
+                  styles.tabText,
+                  {
+                    color: m === mode ? colors.primaryForeground : colors.mutedForeground,
+                    fontFamily: m === mode ? 'Inter_600SemiBold' : 'Inter_400Regular',
+                  },
+                ]}>
+                  {m === 'signin' ? 'Sign In' : 'Create Account'}
+                </Text>
               </TouchableOpacity>
+            ))}
+          </View>
 
-              {/* Switch mode */}
-              <View style={styles.switchRow}>
-                <Text style={[styles.switchText, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-                  {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
-                </Text>
-                <TouchableOpacity onPress={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setFieldErrors({}); setSubmitError(null); }}>
-                  <Text style={[styles.switchLink, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>
-                    {mode === 'signin' ? 'Sign Up' : 'Sign In'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+          {/* Welcome text */}
+          <View style={styles.welcome}>
+            <Text style={[styles.welcomeTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
+              {mode === 'signin' ? 'Welcome back 👋' : 'Join SwiftMart 🚀'}
+            </Text>
+            <Text style={[styles.welcomeSub, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+              {mode === 'signin'
+                ? 'Enter your details to access your account'
+                : 'Create an account to start ordering'}
+            </Text>
+          </View>
 
-              {/* Security note */}
-              <View style={styles.secureRow}>
-                <Feather name="lock" size={12} color={colors.mutedForeground} />
-                <Text style={[styles.secureText, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-                  256-bit SSL encrypted · Your data is safe
-                </Text>
-              </View>
+          {/* Name field — sign-up only, animated in */}
+          <Animated.View style={{ height: nameHeight, opacity: nameOpacity, overflow: 'hidden' }}>
+            <InputField
+              label="Full Name"
+              value={name}
+              onChangeText={setName}
+              placeholder="Ridam Kumar"
+              autoCapitalize="words"
+              error={fieldErrors.name}
+              colors={colors}
+            />
+          </Animated.View>
 
-              {/* Required by Clerk for bot protection on sign-up */}
-              <View nativeID="clerk-captcha" />
-            </>
+          {/* Email */}
+          <InputField
+            label="Email Address"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            error={fieldErrors.email}
+            colors={colors}
+          />
+
+          {/* Password */}
+          <InputField
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Min. 8 characters"
+            secureEntry
+            error={fieldErrors.password}
+            colors={colors}
+          />
+
+          {/* Submit error */}
+          {submitError && (
+            <View style={[styles.submitError, { backgroundColor: '#EF444418', borderColor: '#EF4444', borderRadius: colors.radius }]}>
+              <Feather name="alert-circle" size={14} color="#EF4444" />
+              <Text style={[styles.submitErrorText, { color: '#EF4444', fontFamily: 'Inter_400Regular' }]}>
+                {submitError}
+              </Text>
+            </View>
           )}
+
+          {/* CTA */}
+          <TouchableOpacity
+            style={[
+              styles.cta,
+              { backgroundColor: colors.primary, borderRadius: colors.radius },
+              loading && { opacity: 0.7 },
+            ]}
+            onPress={handleSubmit}
+            activeOpacity={0.88}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.primaryForeground} />
+            ) : (
+              <>
+                <Text style={[styles.ctaText, { color: colors.primaryForeground, fontFamily: 'Inter_700Bold' }]}>
+                  {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                </Text>
+                <Feather name="arrow-right" size={18} color={colors.primaryForeground} />
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Switch mode */}
+          <View style={styles.switchRow}>
+            <Text style={[styles.switchText, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+              {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
+            </Text>
+            <TouchableOpacity onPress={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setFieldErrors({}); setSubmitError(null); }}>
+              <Text style={[styles.switchLink, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>
+                {mode === 'signin' ? 'Sign Up' : 'Sign In'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Security note */}
+          <View style={styles.secureRow}>
+            <Feather name="lock" size={12} color={colors.mutedForeground} />
+            <Text style={[styles.secureText, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+              Your data is stored securely on this device
+            </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -521,9 +346,6 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 15, padding: 0 },
   errorText: { fontSize: 12 },
 
-  forgotRow: { alignItems: 'flex-end' },
-  forgotText: { fontSize: 13 },
-
   submitError: {
     flexDirection: 'row', alignItems: 'center',
     gap: 8, padding: 12, borderWidth: 1,
@@ -549,11 +371,4 @@ const styles = StyleSheet.create({
 
   secureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   secureText: { fontSize: 11.5 },
-
-  verifyWrap: { gap: 16, alignItems: 'center', paddingTop: 16 },
-  verifyIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
-  verifyTitle: { fontSize: 22, textAlign: 'center' },
-  verifySub: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  resendBtn: { paddingVertical: 8 },
-  resendText: { fontSize: 14 },
 });

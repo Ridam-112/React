@@ -17,29 +17,11 @@ import { CartProvider } from '@/context/CartContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { AuthProvider, useAuth, needsOnboarding } from '@/context/AuthContext';
 import { AddressProvider } from '@/context/AddressContext';
-import { ClerkProvider, ClerkLoaded } from '@clerk/expo';
-import { tokenCache } from '@clerk/expo/token-cache';
 import { ReactNode } from 'react';
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
-
-// Fall back to a stub key so ClerkProvider mounts without crashing.
-// When the stub is active, ClerkLoaded never fires — we use ClerkReady instead.
-const publishableKey =
-  process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_stub_no_auth';
-const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
-const hasClerk = !!process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
-/**
- * Renders children immediately when Clerk isn't configured (stub key),
- * otherwise waits for ClerkLoaded so hooks like useUser work.
- */
-function ClerkReady({ children }: { children: ReactNode }) {
-  if (!hasClerk) return <>{children}</>;
-  return <ClerkLoaded>{children}</ClerkLoaded>;
-}
 
 /** Bridges AuthContext → AddressProvider so userId is always in sync. */
 function AddressWrapper({ children }: { children: ReactNode }) {
@@ -110,25 +92,21 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache} proxyUrl={proxyUrl}>
-          <ClerkReady>
-            <QueryClientProvider client={queryClient}>
-              <AuthProvider>
-                <AddressWrapper>
-                  <CartProvider>
-                    <NotificationProvider>
-                      <GestureHandlerRootView style={{ flex: 1 }}>
-                        <KeyboardProvider>
-                          <RootLayoutNav />
-                        </KeyboardProvider>
-                      </GestureHandlerRootView>
-                    </NotificationProvider>
-                  </CartProvider>
-                </AddressWrapper>
-              </AuthProvider>
-            </QueryClientProvider>
-          </ClerkReady>
-        </ClerkProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <AddressWrapper>
+              <CartProvider>
+                <NotificationProvider>
+                  <GestureHandlerRootView style={{ flex: 1 }}>
+                    <KeyboardProvider>
+                      <RootLayoutNav />
+                    </KeyboardProvider>
+                  </GestureHandlerRootView>
+                </NotificationProvider>
+              </CartProvider>
+            </AddressWrapper>
+          </AuthProvider>
+        </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );
