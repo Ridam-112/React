@@ -1,0 +1,42 @@
+import { pgTable, text, real, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+
+export const shops = pgTable("shops", {
+  id:                       text("id").primaryKey(),
+  shopName:                 text("shop_name").notNull(),
+  ownerName:                text("owner_name").notNull(),
+  phone:                    text("phone").notNull(),
+  ownerId:                  text("owner_id").notNull(),
+  address:                  jsonb("address").notNull(),
+  shopType:                 text("shop_type").notNull(),
+  category:                 text("category").notNull(),
+  subcategory:              text("subcategory"),
+  description:              text("description"),
+  image:                    text("image"),
+  banner:                   text("banner"),
+  timings:                  jsonb("timings").notNull().default({}),
+  commissionRate:           real("commission_rate").notNull().default(5),
+  status:                   text("status").notNull().default("pending"),
+  isOpen:                   boolean("is_open").notNull().default(false),
+  rating:                   real("rating").notNull().default(0),
+  totalOrders:              integer("total_orders").notNull().default(0),
+  totalRevenue:             real("total_revenue").notNull().default(0),
+  panNumber:                text("pan_number"),
+  gstNumber:                text("gst_number"),
+  bankAccountNumber:        text("bank_account_number"),
+  bankIfscCode:             text("bank_ifsc_code"),
+  upiId:                    text("upi_id"),
+  rejectionReason:          text("rejection_reason"),
+  createdAt:                timestamp("created_at").notNull().defaultNow(),
+  updatedAt:                timestamp("updated_at").notNull().defaultNow(),
+  bankAccountHolderName:    text("bank_account_holder_name"),
+  certificateType:          text("certificate_type"),
+  certificateNumber:        text("certificate_number"),
+  certificateExpiryDate:    text("certificate_expiry_date"),
+  certificateFile:          text("certificate_file"),
+  certificateStatus:        text("certificate_status"),
+  certificateRejectReason:  text("certificate_reject_reason"),
+  verificationStatus:       text("verification_status").notNull().default("pending"),
+});
+
+export type Shop = typeof shops.$inferSelect;
+export type InsertShop = typeof shops.$inferInsert;
