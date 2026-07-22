@@ -11,8 +11,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
-import { NOTIFICATIONS } from '@/constants/data';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationContext';
 
 type MenuItem = { icon: string; label: string; route?: string };
 
@@ -30,7 +30,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
-  const unreadCount = NOTIFICATIONS.filter((n) => !n.read).length;
+  const { unreadCount } = useNotifications();
 
   const handleSignOut = async () => {
     setSigningOut(true);

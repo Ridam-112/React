@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   FlatList,
   Platform,
@@ -7,24 +7,26 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ViewToken,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import { NOTIFICATIONS, AppNotification, NotificationKind } from '@/constants/data';
+import { AppNotification, NotificationKind } from '@/constants/data';
+import { useNotifications } from '@/context/NotificationContext';
 
 /* ─── Icon config per kind ──────────────────────────────────────── */
 type IconConfig = { name: string; bg: string; fg: string };
 
 function getIconConfig(kind: NotificationKind, primary: string): IconConfig {
   switch (kind) {
-    case 'delivery': return { name: 'truck-delivery',   bg: '#3B82F6', fg: '#fff' };
-    case 'order':    return { name: 'receipt',          bg: '#10B981', fg: '#fff' };
-    case 'offer':    return { name: 'tag-outline',      bg: primary,   fg: '#fff' };
+    case 'delivery': return { name: 'truck-delivery',    bg: '#3B82F6', fg: '#fff' };
+    case 'order':    return { name: 'receipt',           bg: '#10B981', fg: '#fff' };
+    case 'offer':    return { name: 'tag-outline',       bg: primary,   fg: '#fff' };
     case 'system':   return { name: 'bell-ring-outline', bg: '#8B5CF6', fg: '#fff' };
-    default:         return { name: 'bell-outline',     bg: '#6B7280', fg: '#fff' };
+    default:         return { name: 'bell-outline',      bg: '#6B7280', fg: '#fff' };
   }
 }
 
@@ -114,7 +116,10 @@ function NotifRow({
               onMarkRead(item.id);
               router.push(item.actionRoute as any);
             }}
-            style={[styles.actionBtn, { borderColor: colors.primary + '60', backgroundColor: colors.primary + '12' }]}
+            style={[
+              styles.actionBtn,
+              { borderColor: colors.primary + '60', backgroundColor: colors.primary + '12' },
+            ]}
           >
             <Text style={[styles.actionText, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>
               {item.actionLabel}
@@ -131,22 +136,29 @@ function NotifRow({
 export default function NotificationsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
 
   const [activeTab, setActiveTab] = useState<TabKey>('all');
-  const [notifs, setNotifs] = useState<AppNotification[]>(NOTIFICATIONS);
-
-  const unreadCount = notifs.filter((n) => !n.read).length;
 
   const filtered =
-    activeTab === 'all' ? notifs : notifs.filter((n) => n.kind === activeTab);
+    activeTab === 'all' ? notifications : notifications.filter((n) => n.kind === activeTab);
 
-  function markRead(id: string) {
-    setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }
+  /* ── Auto-mark-read when item scrolls into view ── */
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      viewableItems.forEach((vi) => {
+        const n = vi.item as AppNotification;
+        if (vi.isViewable && !n.read) {
+          markRead(n.id);
+        }
+      });
+    },
+    [markRead]
+  );
 
-  function markAllRead() {
-    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
-  }
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 60,
+  }).current;
 
   /* ── Empty state ── */
   const EmptyState = (
@@ -212,7 +224,6 @@ export default function NotificationsScreen() {
               onPress={() => setActiveTab(tab.key as TabKey)}
               style={[
                 styles.tab,
-                active && { borderBottomColor: colors.primary },
                 { borderBottomColor: active ? colors.primary : 'transparent' },
               ]}
             >
@@ -237,6 +248,8 @@ export default function NotificationsScreen() {
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <NotifRow item={item} onMarkRead={markRead} />}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
         contentContainerStyle={[
           styles.list,
           { paddingBottom: insets.bottom + 32 },

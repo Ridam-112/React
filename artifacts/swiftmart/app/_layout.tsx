@@ -14,6 +14,7 @@ import {
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { CartProvider } from '@/context/CartContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 import { AuthProvider, useAuth, needsOnboarding } from '@/context/AuthContext';
 import { AddressProvider } from '@/context/AddressContext';
 import { ClerkProvider, ClerkLoaded } from '@clerk/expo';
@@ -24,8 +25,21 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+// Fall back to a stub key so ClerkProvider mounts without crashing.
+// When the stub is active, ClerkLoaded never fires — we use ClerkReady instead.
+const publishableKey =
+  process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_stub_no_auth';
 const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
+const hasClerk = !!process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+/**
+ * Renders children immediately when Clerk isn't configured (stub key),
+ * otherwise waits for ClerkLoaded so hooks like useUser work.
+ */
+function ClerkReady({ children }: { children: ReactNode }) {
+  if (!hasClerk) return <>{children}</>;
+  return <ClerkLoaded>{children}</ClerkLoaded>;
+}
 
 /** Bridges AuthContext → AddressProvider so userId is always in sync. */
 function AddressWrapper({ children }: { children: ReactNode }) {
@@ -49,16 +63,16 @@ function RootLayoutNav() {
     <>
       <OnboardingGuard />
       <Stack screenOptions={{ headerBackTitle: 'Back' }}>
-        <Stack.Screen name="(tabs)"         options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding"     options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="products"       options={{ headerShown: false }} />
-        <Stack.Screen name="product/[id]"   options={{ headerShown: false }} />
-        <Stack.Screen name="shop/[id]"      options={{ headerShown: false }} />
-        <Stack.Screen name="notifications"   options={{ headerShown: false }} />
-        <Stack.Screen name="flash-deals"    options={{ headerShown: false }} />
-        <Stack.Screen name="offers"         options={{ headerShown: false }} />
-        <Stack.Screen name="shops"          options={{ headerShown: false }} />
-        <Stack.Screen name="order/[id]"               options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)"                    options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding"                options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="products"                  options={{ headerShown: false }} />
+        <Stack.Screen name="product/[id]"              options={{ headerShown: false }} />
+        <Stack.Screen name="shop/[id]"                 options={{ headerShown: false }} />
+        <Stack.Screen name="notifications"             options={{ headerShown: false }} />
+        <Stack.Screen name="flash-deals"               options={{ headerShown: false }} />
+        <Stack.Screen name="offers"                    options={{ headerShown: false }} />
+        <Stack.Screen name="shops"                     options={{ headerShown: false }} />
+        <Stack.Screen name="order/[id]"                options={{ headerShown: false }} />
         <Stack.Screen name="checkout/address"          options={{ headerShown: false }} />
         <Stack.Screen name="checkout/payment"          options={{ headerShown: false }} />
         <Stack.Screen name="checkout/confirm"          options={{ headerShown: false }} />
@@ -70,8 +84,8 @@ function RootLayoutNav() {
         <Stack.Screen name="profile/help"              options={{ headerShown: false }} />
         <Stack.Screen name="profile/settings"          options={{ headerShown: false }} />
         <Stack.Screen name="category/[id]"             options={{ headerShown: false }} />
-        <Stack.Screen name="auth/index"               options={{ headerShown: false }} />
-        <Stack.Screen name="auth/email"               options={{ headerShown: false }} />
+        <Stack.Screen name="auth/index"                options={{ headerShown: false }} />
+        <Stack.Screen name="auth/email"                options={{ headerShown: false }} />
       </Stack>
     </>
   );
@@ -97,21 +111,23 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache} proxyUrl={proxyUrl}>
-          <ClerkLoaded>
+          <ClerkReady>
             <QueryClientProvider client={queryClient}>
               <AuthProvider>
                 <AddressWrapper>
                   <CartProvider>
-                    <GestureHandlerRootView style={{ flex: 1 }}>
-                      <KeyboardProvider>
-                        <RootLayoutNav />
-                      </KeyboardProvider>
-                    </GestureHandlerRootView>
+                    <NotificationProvider>
+                      <GestureHandlerRootView style={{ flex: 1 }}>
+                        <KeyboardProvider>
+                          <RootLayoutNav />
+                        </KeyboardProvider>
+                      </GestureHandlerRootView>
+                    </NotificationProvider>
                   </CartProvider>
                 </AddressWrapper>
               </AuthProvider>
             </QueryClientProvider>
-          </ClerkLoaded>
+          </ClerkReady>
         </ClerkProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

@@ -17,7 +17,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { CATEGORIES, PRODUCTS, SHOPS, OFFERS, NOTIFICATIONS } from '@/constants/data';
+import { CATEGORIES, PRODUCTS, SHOPS, OFFERS } from '@/constants/data';
+import { useNotifications } from '@/context/NotificationContext';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useAddresses, SavedAddress } from '@/context/AddressContext';
@@ -241,7 +242,7 @@ export default function HomeScreen() {
     return seededShuffle(OFFERS, user.id + '_offers').slice(0, 2);
   }, [user?.id]);
 
-  const unreadCount = user ? NOTIFICATIONS.filter((n) => !n.read).length : 0;
+  const { unreadCount } = useNotifications();
   const scrollPaddingBottom = 96 + (insets.bottom > 0 ? insets.bottom : 0);
 
   /* Location pill label */
