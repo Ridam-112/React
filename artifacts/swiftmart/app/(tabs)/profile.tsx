@@ -149,8 +149,19 @@ export default function ProfileScreen() {
               },
             ]}
           >
-            {user?.email ?? user?.phone ?? '+91 98765 43210'}
+            {user?.email ?? user?.phone ?? ''}
           </Text>
+          {user?.address ? (
+            <Text
+              style={[
+                styles.userPhone,
+                { color: colors.mutedForeground, fontFamily: 'Inter_400Regular', marginTop: 1 },
+              ]}
+              numberOfLines={1}
+            >
+              📍 {user.address.split(',')[0].trim()}
+            </Text>
+          ) : null}
         </View>
         <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => router.push('/profile/edit')}>
           <Feather name="edit-2" size={18} color={colors.primary} />
