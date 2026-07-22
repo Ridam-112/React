@@ -131,8 +131,24 @@ export default function AuthScreen() {
       });
 
       if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId });
-        router.replace('/');
+        // Use the navigate callback so router.replace fires only after Clerk
+        // has finished activating the session — avoids the race condition
+        // where the home screen renders before useUser() reflects the new session.
+        await setActive({
+          session: createdSessionId,
+          navigate: async ({ session, decorateUrl }) => {
+            if (session?.currentTask) {
+              // Session task (e.g. force password reset) — handle separately if needed
+              console.log('Session task:', session.currentTask);
+              return;
+            }
+            router.replace(decorateUrl('/') as any);
+          },
+        });
+      } else {
+        // createdSessionId is absent when Clerk needs more info (e.g. MFA).
+        // For most Google sign-ins this branch is never hit.
+        setError('Google sign-in could not be completed. Please try again.');
       }
     } catch (err: any) {
       console.error('Google SSO error:', JSON.stringify(err, null, 2));

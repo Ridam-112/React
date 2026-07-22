@@ -409,9 +409,9 @@ export default function EmailAuthScreen() {
                 style={[styles.cta, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
                 onPress={handleSubmit}
                 activeOpacity={0.88}
-                disabled={loading || isFetching}
+                disabled={loading}
               >
-                {loading || isFetching ? (
+                {loading ? (
                   <ActivityIndicator color={colors.primaryForeground} />
                 ) : (
                   <>
