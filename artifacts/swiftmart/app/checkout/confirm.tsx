@@ -12,14 +12,21 @@ import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { router } from 'expo-router';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { useAddresses } from '@/context/AddressContext';
 
 export default function ConfirmScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { items, total, itemCount, clearCart } = useCart();
+  const { user } = useAuth();
+  const { selectedAddress } = useAddresses();
 
   const deliveryFee = 29;
   const grandTotal = total + deliveryFee;
+
+  const addrTagIcon = (tag?: string) =>
+    tag === 'Work' ? 'briefcase' : tag === 'Other' ? 'map-pin' : 'home';
 
   function handlePlaceOrder() {
     clearCart();
@@ -45,16 +52,31 @@ export default function ConfirmScreen() {
 
         {/* Delivery address */}
         <SectionCard colors={colors} icon="map-pin" title="Delivering to">
-          <View style={styles.addrRow}>
-            <View style={[styles.addrTag, { backgroundColor: colors.primary + '22' }]}>
-              <Feather name="home" size={11} color={colors.primary} />
-              <Text style={[styles.addrTagText, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>Home</Text>
-            </View>
-          </View>
-          <Text style={[styles.addrName, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]}>Ridam Sharma</Text>
-          <Text style={[styles.addrLine, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
-            12, Green Valley Apartments, MG Road, Mumbai – 400001
-          </Text>
+          {selectedAddress ? (
+            <>
+              <View style={styles.addrRow}>
+                <View style={[styles.addrTag, { backgroundColor: colors.primary + '22' }]}>
+                  <Feather name={addrTagIcon(selectedAddress.tag) as any} size={11} color={colors.primary} />
+                  <Text style={[styles.addrTagText, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>
+                    {selectedAddress.tag}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.addrName, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]}>
+                {selectedAddress.name}
+              </Text>
+              <Text style={[styles.addrLine, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+                {selectedAddress.line}, {selectedAddress.city} – {selectedAddress.pincode}
+              </Text>
+              <Text style={[styles.addrLine, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+                {selectedAddress.phone}
+              </Text>
+            </>
+          ) : (
+            <Text style={[styles.addrLine, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+              No address selected.
+            </Text>
+          )}
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={[styles.changeLink, { color: colors.primary, fontFamily: 'Inter_500Medium' }]}>Change</Text>
           </TouchableOpacity>

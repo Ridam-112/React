@@ -42,8 +42,8 @@ function ClerkGoogleBridge() {
     const isGoogle = clerkUser.externalAccounts?.some(
       (a) => a.provider === 'google',
     );
-    if (isGoogle && !localUser) {
-      const email = clerkUser.primaryEmailAddress?.emailAddress ?? '';
+    const email = clerkUser.primaryEmailAddress?.emailAddress ?? '';
+    if (isGoogle && !localUser && email) {
       const name =
         clerkUser.fullName ||
         [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') ||

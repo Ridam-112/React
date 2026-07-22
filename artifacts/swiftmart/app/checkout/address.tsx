@@ -6,56 +6,64 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { router } from 'expo-router';
+import { useAddresses, type SavedAddress } from '@/context/AddressContext';
 
-type Address = {
-  id: string;
-  tag: string;
-  name: string;
-  line: string;
-  city: string;
-  pincode: string;
-  phone: string;
-};
-
-const SAVED: Address[] = [
-  {
-    id: 'a1',
-    tag: 'Home',
-    name: 'Ridam Sharma',
-    line: '12, Green Valley Apartments, MG Road',
-    city: 'Mumbai',
-    pincode: '400001',
-    phone: '+91 98765 43210',
-  },
-  {
-    id: 'a2',
-    tag: 'Work',
-    name: 'Ridam Sharma',
-    line: 'Floor 4, Nexus Tower, BKC',
-    city: 'Mumbai',
-    pincode: '400051',
-    phone: '+91 98765 43210',
-  },
-];
-
-type Form = { name: string; phone: string; line: string; city: string; pincode: string };
-const EMPTY_FORM: Form = { name: '', phone: '', line: '', city: '', pincode: '' };
+type Form = { name: string; phone: string; line: string; city: string; pincode: string; tag: 'Home' | 'Work' | 'Other' };
+const EMPTY_FORM: Form = { name: '', phone: '', line: '', city: '', pincode: '', tag: 'Home' };
 
 export default function AddressScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const [selected, setSelected] = useState<string>('a1');
-  const [addingNew, setAddingNew] = useState(false);
-  const [form, setForm] = useState<Form>(EMPTY_FORM);
+  const { addresses, selectedAddress, selectAddress, addAddress } = useAddresses();
+
+  const [selected, setSelected] = useState<string>(selectedAddress?.id ?? addresses[0]?.id ?? '');
+  const [addingNew, setAddingNew] = useState(addresses.length === 0);
+  const [form, setForm]     = useState<Form>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
 
   const canContinue = addingNew
     ? !!(form.name && form.phone && form.line && form.city && form.pincode)
     : !!selected;
+
+  async function handleSelect(id: string) {
+    setSelected(id);
+    await selectAddress(id);
+  }
+
+  async function handleAddNew() {
+    setSaving(true);
+    try {
+      await addAddress({
+        tag:       form.tag,
+        name:      form.name.trim(),
+        line:      form.line.trim(),
+        city:      form.city.trim(),
+        pincode:   form.pincode.trim(),
+        phone:     form.phone.trim(),
+        isDefault: addresses.length === 0,
+      });
+      setAddingNew(false);
+      setForm(EMPTY_FORM);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleContinue() {
+    if (addingNew) {
+      await handleAddNew();
+    }
+    router.push('/checkout/payment');
+  }
+
+  const tagIcon = (tag: SavedAddress['tag']) =>
+    tag === 'Home' ? 'home' : tag === 'Work' ? 'briefcase' : 'map-pin';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -75,13 +83,13 @@ export default function AddressScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 120 }}>
 
         {/* Saved addresses */}
-        {!addingNew && SAVED.map((addr) => {
+        {!addingNew && addresses.map((addr) => {
           const isActive = selected === addr.id;
           return (
             <TouchableOpacity
               key={addr.id}
               activeOpacity={0.8}
-              onPress={() => setSelected(addr.id)}
+              onPress={() => handleSelect(addr.id)}
               style={[
                 styles.addrCard,
                 {
@@ -94,11 +102,7 @@ export default function AddressScreen() {
             >
               <View style={styles.addrTop}>
                 <View style={[styles.tag, { backgroundColor: colors.primary + '22' }]}>
-                  <Feather
-                    name={addr.tag === 'Home' ? 'home' : 'briefcase'}
-                    size={12}
-                    color={colors.primary}
-                  />
+                  <Feather name={tagIcon(addr.tag)} size={12} color={colors.primary} />
                   <Text style={[styles.tagText, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>
                     {addr.tag}
                   </Text>
@@ -143,25 +147,51 @@ export default function AddressScreen() {
               <Text style={[styles.formTitle, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
                 New Address
               </Text>
-              <TouchableOpacity onPress={() => { setAddingNew(false); setSelected('a1'); setForm(EMPTY_FORM); }}>
-                <Feather name="x" size={20} color={colors.mutedForeground} />
-              </TouchableOpacity>
+              {addresses.length > 0 && (
+                <TouchableOpacity onPress={() => { setAddingNew(false); setSelected(addresses[0].id); setForm(EMPTY_FORM); }}>
+                  <Feather name="x" size={20} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              )}
             </View>
+
+            {/* Tag selector */}
+            <View style={styles.tagRow}>
+              {(['Home', 'Work', 'Other'] as const).map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => setForm((f) => ({ ...f, tag: t }))}
+                  style={[
+                    styles.tagChip,
+                    {
+                      backgroundColor: form.tag === t ? colors.primary + '22' : colors.secondary,
+                      borderColor: form.tag === t ? colors.primary : colors.border,
+                      borderRadius: 20,
+                    },
+                  ]}
+                >
+                  <Feather name={tagIcon(t)} size={12} color={form.tag === t ? colors.primary : colors.mutedForeground} />
+                  <Text style={[styles.tagChipText, { color: form.tag === t ? colors.primary : colors.mutedForeground, fontFamily: form.tag === t ? 'Inter_600SemiBold' : 'Inter_400Regular' }]}>
+                    {t}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             {(
               [
-                { key: 'name', label: 'Full Name', placeholder: 'e.g. Ridam Sharma' },
-                { key: 'phone', label: 'Phone Number', placeholder: '+91 00000 00000' },
-                { key: 'line', label: 'Address Line', placeholder: 'Street, building, area' },
-                { key: 'city', label: 'City', placeholder: 'Mumbai' },
-                { key: 'pincode', label: 'Pincode', placeholder: '400001' },
-              ] as { key: keyof Form; label: string; placeholder: string }[]
+                { key: 'name',    label: 'Full Name',     placeholder: 'e.g. Ridam Sharma' },
+                { key: 'phone',   label: 'Phone Number',  placeholder: '+91 00000 00000' },
+                { key: 'line',    label: 'Address Line',  placeholder: 'Street, building, area' },
+                { key: 'city',    label: 'City',          placeholder: 'Mumbai' },
+                { key: 'pincode', label: 'Pincode',       placeholder: '400001' },
+              ] as { key: keyof Omit<Form, 'tag'>; label: string; placeholder: string }[]
             ).map(({ key, label, placeholder }) => (
               <View key={key} style={styles.fieldGroup}>
                 <Text style={[styles.fieldLabel, { color: colors.mutedForeground, fontFamily: 'Inter_500Medium' }]}>
                   {label}
                 </Text>
                 <TextInput
-                  value={form[key]}
+                  value={form[key] as string}
                   onChangeText={(v) => setForm((f) => ({ ...f, [key]: v }))}
                   placeholder={placeholder}
                   placeholderTextColor={colors.mutedForeground + '88'}
@@ -184,32 +214,26 @@ export default function AddressScreen() {
       </ScrollView>
 
       {/* Continue button */}
-      <View
-        style={[
-          styles.footer,
-          {
-            backgroundColor: colors.background,
-            borderTopColor: colors.border,
-            paddingBottom: insets.bottom + 16,
-          },
-        ]}
-      >
+      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: insets.bottom + 16 }]}>
         <TouchableOpacity
           activeOpacity={0.85}
-          disabled={!canContinue}
-          onPress={() => router.push('/checkout/payment')}
+          disabled={!canContinue || saving}
+          onPress={handleContinue}
           style={[
             styles.continueBtn,
-            {
-              backgroundColor: canContinue ? colors.primary : colors.border,
-              borderRadius: colors.radius,
-            },
+            { backgroundColor: canContinue ? colors.primary : colors.border, borderRadius: colors.radius },
           ]}
         >
-          <Text style={[styles.continueBtnText, { color: colors.primaryForeground ?? '#07111F', fontFamily: 'Inter_700Bold' }]}>
-            Continue to Payment
-          </Text>
-          <Feather name="arrow-right" size={18} color={colors.primaryForeground ?? '#07111F'} />
+          {saving ? (
+            <ActivityIndicator color={colors.primaryForeground ?? '#07111F'} />
+          ) : (
+            <>
+              <Text style={[styles.continueBtnText, { color: colors.primaryForeground ?? '#07111F', fontFamily: 'Inter_700Bold' }]}>
+                Continue to Payment
+              </Text>
+              <Feather name="arrow-right" size={18} color={colors.primaryForeground ?? '#07111F'} />
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -238,14 +262,7 @@ function StepDots({ current }: { current: number }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    gap: 10,
-  },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, gap: 10 },
   backBtn: { padding: 4 },
   headerCenter: { flex: 1 },
   headerTitle: { fontSize: 16 },
@@ -261,19 +278,15 @@ const styles = StyleSheet.create({
   addrLine: { fontSize: 13, lineHeight: 19, marginBottom: 3 },
   addrPhone: { fontSize: 12 },
 
-  addNewBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 16,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-  },
+  addNewBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, borderWidth: 1, borderStyle: 'dashed' },
   addNewText: { fontSize: 14 },
 
   formCard: { padding: 16, borderWidth: 1, gap: 14 },
   formHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   formTitle: { fontSize: 15 },
+  tagRow: { flexDirection: 'row', gap: 8 },
+  tagChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1 },
+  tagChipText: { fontSize: 13 },
   fieldGroup: { gap: 6 },
   fieldLabel: { fontSize: 12 },
   input: { padding: 12, borderWidth: 1, fontSize: 14 },

@@ -107,7 +107,11 @@ export default function HelpScreen() {
               <TouchableOpacity
                 key={c.label}
                 activeOpacity={0.8}
-                onPress={() => c.action && Linking.openURL(c.action)}
+                onPress={async () => {
+          if (!c.action) return;
+          const supported = await Linking.canOpenURL(c.action);
+          if (supported) Linking.openURL(c.action);
+        }}
                 style={[styles.contactCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}
               >
                 <View style={[styles.contactIcon, { backgroundColor: c.color + '22' }]}>
