@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,18 +14,15 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import { useAuth } from '@/context/AuthContext';
+import { useSSO } from '@clerk/expo';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+
+// Required: completes any pending OAuth session on mount
+WebBrowser.maybeCompleteAuthSession();
 
 const { width: W, height: H } = Dimensions.get('window');
-
-/* ─── Brand colours ──────────────────────────────────────────────── */
-const BRAND = {
-  google:      { bg: '#FFFFFF', text: '#3C4043', border: '#DADCE0', icon: 'google'      },
-  truecaller:  { bg: '#0066FF', text: '#FFFFFF', border: '#0066FF', icon: 'phone'       },
-  facebook:    { bg: '#1877F2', text: '#FFFFFF', border: '#1877F2', icon: 'facebook'    },
-};
 
 /* ─── Floating background blobs ──────────────────────────────────── */
 function Blob({ x, y, size, color, opacity }: { x: number; y: number; size: number; color: string; opacity: number }) {
@@ -56,17 +53,8 @@ function GoogleG({ size = 20 }: { size?: number }) {
   );
 }
 
-/* ─── Social button ──────────────────────────────────────────────── */
-type SocialBtnProps = {
-  provider: keyof typeof BRAND;
-  label: string;
-  onPress: () => void;
-  loading?: boolean;
-  colors: ReturnType<typeof useColors>;
-};
-
-function SocialButton({ provider, label, onPress, loading, colors: c }: SocialBtnProps) {
-  const brand = BRAND[provider];
+/* ─── Google sign-in button ─────────────────────────────────────── */
+function GoogleButton({ onPress, loading, colors: c }: { onPress: () => void; loading: boolean; colors: ReturnType<typeof useColors> }) {
   const scale = useRef(new Animated.Value(1)).current;
   const nativeDriver = Platform.OS !== 'web';
 
@@ -86,25 +74,19 @@ function SocialButton({ provider, label, onPress, loading, colors: c }: SocialBt
         style={[
           styles.socialBtn,
           {
-            backgroundColor: brand.bg,
-            borderColor: provider === 'google' ? brand.border : brand.bg,
+            backgroundColor: '#FFFFFF',
+            borderColor: '#DADCE0',
             borderRadius: c.radius,
           },
         ]}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={brand.text} />
-        ) : provider === 'google' ? (
-          <GoogleG size={20} />
+          <ActivityIndicator size="small" color="#3C4043" />
         ) : (
-          <MaterialCommunityIcons
-            name={brand.icon as any}
-            size={20}
-            color={brand.text}
-          />
+          <GoogleG size={20} />
         )}
-        <Text style={[styles.socialBtnText, { color: brand.text, fontFamily: 'Inter_600SemiBold' }]}>
-          {label}
+        <Text style={[styles.socialBtnText, { color: '#3C4043', fontFamily: 'Inter_600SemiBold' }]}>
+          Continue with Google
         </Text>
         <View style={{ width: 20 }} />
       </TouchableOpacity>
@@ -116,9 +98,10 @@ function SocialButton({ provider, label, onPress, loading, colors: c }: SocialBt
 export default function AuthScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { signInWithGoogle, signInWithFacebook, signInWithTruecaller } = useAuth();
+  const { startSSOFlow } = useSSO();
 
-  const [busy, setBusy] = useState<'google' | 'truecaller' | 'facebook' | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Slide-up animation for the bottom sheet
   const slideY = useRef(new Animated.Value(60)).current;
@@ -131,15 +114,34 @@ export default function AuthScreen() {
     ]).start();
   }, []);
 
-  const handle = async (provider: 'google' | 'truecaller' | 'facebook', fn: () => Promise<void>) => {
-    setBusy(provider);
+  // Warm up the browser on Android for faster OAuth
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    WebBrowser.warmUpAsync();
+    return () => { WebBrowser.coolDownAsync(); };
+  }, []);
+
+  const handleGoogle = useCallback(async () => {
+    setBusy(true);
+    setError(null);
     try {
-      await fn();
-      router.replace('/onboarding');
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: 'oauth_google',
+        redirectUrl: AuthSession.makeRedirectUri(),
+      });
+
+      if (createdSessionId) {
+        await setActive!({ session: createdSessionId });
+        // OnboardingGuard in _layout.tsx will redirect to /onboarding if profile is incomplete
+        router.replace('/');
+      }
+    } catch (err: any) {
+      console.error('Google SSO error:', JSON.stringify(err, null, 2));
+      setError('Google sign-in failed. Please try again.');
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
-  };
+  }, [startSSOFlow]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -149,7 +151,7 @@ export default function AuthScreen() {
       <Blob x={-60}    y={-60}          size={220} color={colors.primary} opacity={0.07} />
       <Blob x={W - 80} y={H * 0.18}     size={160} color="#4285F4"        opacity={0.06} />
       <Blob x={40}     y={H * 0.35}     size={100} color={colors.primary} opacity={0.05} />
-      <Blob x={W - 40} y={H * 0.52}     size={130} color="#1877F2"        opacity={0.05} />
+      <Blob x={W - 40} y={H * 0.52}     size={130} color="#4285F4"        opacity={0.05} />
 
       {/* ── Hero section ──────────────────────────────────────────── */}
       <View style={[styles.hero, { paddingTop: insets.top + 32 }]}>
@@ -212,30 +214,18 @@ export default function AuthScreen() {
           Choose how you'd like to sign in
         </Text>
 
-        {/* Social buttons */}
+        {/* Google button */}
         <View style={styles.socials}>
-          <SocialButton
-            provider="google"
-            label="Continue with Google"
-            onPress={() => handle('google', signInWithGoogle)}
-            loading={busy === 'google'}
-            colors={colors}
-          />
-          <SocialButton
-            provider="truecaller"
-            label="Continue with Truecaller"
-            onPress={() => handle('truecaller', signInWithTruecaller)}
-            loading={busy === 'truecaller'}
-            colors={colors}
-          />
-          <SocialButton
-            provider="facebook"
-            label="Continue with Facebook"
-            onPress={() => handle('facebook', signInWithFacebook)}
-            loading={busy === 'facebook'}
-            colors={colors}
-          />
+          <GoogleButton onPress={handleGoogle} loading={busy} colors={colors} />
         </View>
+
+        {/* Error message */}
+        {error && (
+          <View style={[styles.errorBanner, { backgroundColor: '#EF444415', borderColor: '#EF4444', borderRadius: colors.radius }]}>
+            <Feather name="alert-circle" size={13} color="#EF4444" />
+            <Text style={[styles.errorText, { color: '#EF4444', fontFamily: 'Inter_400Regular' }]}>{error}</Text>
+          </View>
+        )}
 
         {/* Divider */}
         <View style={styles.dividerRow}>
@@ -358,6 +348,17 @@ const styles = StyleSheet.create({
     }),
   },
   socialBtnText: { fontSize: 15 },
+
+  /* Error */
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderWidth: 1,
+    marginTop: 10,
+  },
+  errorText: { fontSize: 13, flex: 1 },
 
   /* Divider */
   dividerRow: {

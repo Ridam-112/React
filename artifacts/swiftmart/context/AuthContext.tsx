@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUser, useClerk } from '@clerk/expo';
 
 export type AuthUser = {
   id: string;
@@ -8,118 +9,97 @@ export type AuthUser = {
   phone?: string;
   address?: string;
   avatar?: string;
-  provider: 'google' | 'facebook' | 'truecaller' | 'email';
+  provider: 'google' | 'email';
 };
 
 /** True when the mandatory post-login profile fields are still missing. */
 export function needsOnboarding(user: AuthUser): boolean {
   if (!user.address) return true;
-  // Truecaller provides phone automatically; everyone else must supply it.
-  if (user.provider !== 'truecaller' && !user.phone) return true;
+  if (!user.phone) return true;
   return false;
 }
+
+type ExtraProfile = { phone?: string; address?: string };
+const extraKey = (uid: string) => `@swiftmart_extra_${uid}`;
 
 type AuthContextType = {
   user: AuthUser | null;
   isLoading: boolean;
-  signInWithGoogle: () => Promise<void>;
-  signInWithFacebook: () => Promise<void>;
-  signInWithTruecaller: () => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (name: string, email: string, password: string) => Promise<void>;
   completeProfile: (updates: { name: string; phone?: string; address: string }) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const AUTH_KEY = '@swiftmart_user';
-
+/**
+ * Wraps Clerk's useUser/useClerk to expose an AuthUser that includes
+ * extra profile fields (phone, address) stored in AsyncStorage per user.
+ * Must be mounted inside <ClerkProvider>.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user: clerkUser, isLoaded } = useUser();
+  const { signOut: clerkSignOut } = useClerk();
+  const [extra, setExtra] = useState<ExtraProfile>({});
 
+  // Load extra profile data whenever the signed-in user changes
   useEffect(() => {
-    AsyncStorage.getItem(AUTH_KEY)
-      .then((raw) => {
-        if (raw) setUser(JSON.parse(raw));
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
-
-  const persist = async (u: AuthUser) => {
-    await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(u));
-    setUser(u);
-  };
-
-  const signInWithGoogle = async () => {
-    // Mock — replace with expo-auth-session / Google Sign-In SDK
-    await persist({
-      id: 'g_001',
-      name: 'Ridam Kumar',
-      email: 'ridam@gmail.com',
-      provider: 'google',
+    if (!clerkUser?.id) {
+      setExtra({});
+      return;
+    }
+    AsyncStorage.getItem(extraKey(clerkUser.id)).then((raw) => {
+      setExtra(raw ? JSON.parse(raw) : {});
     });
-  };
+  }, [clerkUser?.id]);
 
-  const signInWithFacebook = async () => {
-    // Mock — replace with expo-facebook / Facebook SDK
-    await persist({
-      id: 'fb_001',
-      name: 'Ridam Kumar',
-      email: 'ridam@facebook.com',
-      provider: 'facebook',
-    });
-  };
+  const user: AuthUser | null = clerkUser
+    ? {
+        id: clerkUser.id,
+        name: clerkUser.fullName ?? clerkUser.firstName ?? 'User',
+        email: clerkUser.primaryEmailAddress?.emailAddress,
+        phone: extra.phone,
+        address: extra.address,
+        avatar: clerkUser.imageUrl,
+        provider:
+          clerkUser.externalAccounts?.[0]?.provider === 'google' ? 'google' : 'email',
+      }
+    : null;
 
-  const signInWithTruecaller = async () => {
-    // Mock — replace with Truecaller SDK (react-native-true-caller)
-    await persist({
-      id: 'tc_001',
-      name: 'Ridam Kumar',
-      phone: '+91 98765 43210',
-      provider: 'truecaller',
-    });
-  };
+  /** Saves phone + address to AsyncStorage and optionally updates the name in Clerk. */
+  const completeProfile = async (updates: {
+    name: string;
+    phone?: string;
+    address: string;
+  }) => {
+    if (!clerkUser) return;
+    const newExtra: ExtraProfile = {
+      ...extra,
+      phone: updates.phone,
+      address: updates.address,
+    };
+    await AsyncStorage.setItem(extraKey(clerkUser.id), JSON.stringify(newExtra));
+    setExtra(newExtra);
 
-  const signInWithEmail = async (email: string, _password: string) => {
-    await persist({
-      id: 'em_001',
-      name: email.split('@')[0],
-      email,
-      provider: 'email',
-    });
-  };
-
-  const signUpWithEmail = async (name: string, email: string, _password: string) => {
-    await persist({ id: 'em_001', name, email, provider: 'email' });
-  };
-
-  /** Saves name, phone (if provided), and address onto the current user. */
-  const completeProfile = async (updates: { name: string; phone?: string; address: string }) => {
-    if (!user) return;
-    await persist({ ...user, ...updates });
+    // Sync name into Clerk if it changed
+    try {
+      const parts = updates.name.trim().split(/\s+/);
+      const firstName = parts[0];
+      const lastName = parts.slice(1).join(' ') || undefined;
+      if (firstName !== clerkUser.firstName || lastName !== clerkUser.lastName) {
+        await clerkUser.update({ firstName, lastName });
+      }
+    } catch (e) {
+      console.warn('Could not update name in Clerk:', e);
+    }
   };
 
   const signOut = async () => {
-    await AsyncStorage.removeItem(AUTH_KEY);
-    setUser(null);
+    await clerkSignOut();
+    // Extra data stays keyed by user ID — safe to leave, won't leak to other users
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        signInWithGoogle,
-        signInWithFacebook,
-        signInWithTruecaller,
-        signInWithEmail,
-        signUpWithEmail,
-        completeProfile,
-        signOut,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isLoading: !isLoaded, completeProfile, signOut }}>
       {children}
     </AuthContext.Provider>
   );

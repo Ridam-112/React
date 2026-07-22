@@ -16,11 +16,15 @@ import * as SplashScreen from 'expo-splash-screen';
 import { CartProvider } from '@/context/CartContext';
 import { AuthProvider, useAuth, needsOnboarding } from '@/context/AuthContext';
 import { AddressProvider } from '@/context/AddressContext';
+import { ClerkProvider, ClerkLoaded } from '@clerk/expo';
+import { tokenCache } from '@clerk/expo/token-cache';
 import { ReactNode } from 'react';
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
 /** Bridges AuthContext → AddressProvider so userId is always in sync. */
 function AddressWrapper({ children }: { children: ReactNode }) {
@@ -91,19 +95,23 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <AddressWrapper>
-              <CartProvider>
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                  <KeyboardProvider>
-                    <RootLayoutNav />
-                  </KeyboardProvider>
-                </GestureHandlerRootView>
-              </CartProvider>
-            </AddressWrapper>
-          </AuthProvider>
-        </QueryClientProvider>
+        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+          <ClerkLoaded>
+            <QueryClientProvider client={queryClient}>
+              <AuthProvider>
+                <AddressWrapper>
+                  <CartProvider>
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                      <KeyboardProvider>
+                        <RootLayoutNav />
+                      </KeyboardProvider>
+                    </GestureHandlerRootView>
+                  </CartProvider>
+                </AddressWrapper>
+              </AuthProvider>
+            </QueryClientProvider>
+          </ClerkLoaded>
+        </ClerkProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );
